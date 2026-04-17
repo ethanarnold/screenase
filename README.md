@@ -1,6 +1,7 @@
 # Screenase — DoE tool for IVT reaction optimization
 
 [![CI](https://github.com/ethanarnold/screenase/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanarnold/screenase/actions/workflows/ci.yml)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://screenase.streamlit.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Plan a randomized 2^k full-factorial DoE screen for in-vitro transcription
@@ -8,7 +9,7 @@ reactions, print a bench-ready pipetting sheet, and analyze the resulting
 yields — all from a single CLI, a Streamlit web app, or a Benchling-App-shaped
 Python subpackage.
 
-> **Live demo:** _Streamlit Cloud URL goes here after deploy._
+> **Live demo:** **[screenase.streamlit.app](https://screenase.streamlit.app/)** — click Generate, download the bench sheet, upload a results CSV to see the Pareto.
 > `docs/screenshots/cli_demo.gif` shows the generate → bench sheet → analyze loop.
 
 ## Why
@@ -68,7 +69,7 @@ factors:
 
 ## Live demo
 
-Try it in the browser: _[Streamlit Cloud URL goes here]_.
+Try it in the browser: **[screenase.streamlit.app](https://screenase.streamlit.app/)**.
 The hosted app wraps the same `screenase` package — two tabs:
 
 - **Generate screen**: slider-edit factors, get CSV + rendered bench sheet + download buttons.
