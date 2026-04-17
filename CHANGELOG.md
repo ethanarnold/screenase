@@ -4,6 +4,27 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] — 2026-04-17
+
+### Added
+
+- **Benchling-inspired Streamlit theme** — lavender / indigo palette
+  (`primaryColor = #6558f5`, secondary lavender panel) so the demo
+  visually aligns with the Benchling UI.
+- **Auto-narrated results summary (`screenase.narrate.narrate_analysis`).**
+  One-paragraph plain-English summary of the OLS fit — mentions the top
+  significant drivers, the sign of the strongest effect, the R², and a
+  curvature → CCD recommendation when warranted. Rendered at the top of
+  `analysis_report.md` and shown inline in the Streamlit analyze tab.
+- **Shareable-URL state (`screenase.share` + Streamlit integration).**
+  Sidebar config compresses to a ~400-byte URL-safe blob passed as
+  `?cfg=…`; the Streamlit app decodes it on page load, so a link
+  reproduces someone else's exact design. Round-trip + URL-limit tests.
+- **Branded bench-sheet PDF export (`bench_sheet.write_bench_sheet_pdf`
+  + CLI `--pdf`).** WeasyPrint-backed; ships behind a new `[pdf]` extra
+  so the core install stays light. CLI fails gracefully with a pointer
+  when the extra isn't installed.
+
 ## [0.7.0] — 2026-04-17
 
 ### Added

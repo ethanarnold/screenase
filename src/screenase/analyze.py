@@ -327,6 +327,12 @@ def analyze_cli(
             )
         lines.append(f"\nBest by AICc: **{comparisons[0].name}**\n")
 
+    from screenase.narrate import narrate_analysis
+    narration = narrate_analysis(
+        effects, r_squared=float(fit.rsquared), curvature=curv,
+    )
+    lines = ["# Summary\n\n", narration, "\n\n", *lines[0:1], *lines[1:]]
+
     report.write_text("".join(lines))
     return {"effects": effects, "pareto_png": str(png), "report_md": str(report),
             "curvature": curv, "r2": float(fit.rsquared),
@@ -334,7 +340,8 @@ def analyze_cli(
             "diagnostics_png": diag_png, "half_normal_png": hn_png,
             "outliers": outliers, "heteroscedasticity": het,
             "lack_of_fit": lof.__dict__ if lof else None,
-            "model_comparison": [c.__dict__ for c in comparisons]}
+            "model_comparison": [c.__dict__ for c in comparisons],
+            "narration": narration}
 
 
 def optimize_response(

@@ -1,9 +1,12 @@
+# Benchling-inspired palette: lavender / indigo accents, IBM Plex typography.
+# This aligns the demo visually with Benchling's UI so the tool feels native.
 [theme]
-primaryColor = "#4a6fa5"
+primaryColor = "#6558f5"
 backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f6f7f9"
-textColor = "#222222"
+secondaryBackgroundColor = "#f5f3ff"
+textColor = "#1f1a3d"
 font = "sans serif"
+base = "light"
 
 [server]
 headless = true

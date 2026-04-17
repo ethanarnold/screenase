@@ -170,6 +170,27 @@ def render_bench_sheet(context: dict[str, Any]) -> str:
     return template.render(**context)
 
 
+def write_bench_sheet_pdf(html: str, out_path: Path | str) -> Path:
+    """Render a bench-sheet HTML string to PDF via WeasyPrint.
+
+    Requires the `[pdf]` extra: `pip install 'screenase[pdf]'`. WeasyPrint
+    pulls in system libs (libcairo, libpango) on Linux; on macOS a
+    `brew install weasyprint` covers it. Raises `ImportError` with a
+    pointer if the extra isn't installed.
+    """
+    try:
+        from weasyprint import HTML
+    except ImportError as exc:
+        raise ImportError(
+            "PDF export requires the `[pdf]` extra: "
+            "pip install 'screenase[pdf]' (+ system libs on Linux)"
+        ) from exc
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    HTML(string=html).write_pdf(str(out))
+    return out
+
+
 def write_bench_sheet(
     vol_df: pd.DataFrame,
     is_center: pd.Series,

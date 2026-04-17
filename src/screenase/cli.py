@@ -57,6 +57,8 @@ def _build_parser() -> argparse.ArgumentParser:
     g.add_argument("--pb-runs", type=int, default=12,
                    help="Plackett-Burman run count (8, 12, 16, 20, 24). "
                         "Ignored unless --design=pb.")
+    g.add_argument("--pdf", action="store_true",
+                   help="Also emit a bench-sheet PDF (requires `[pdf]` extra).")
 
     a = sub.add_parser("analyze", help="Analyze a completed screen")
     a.add_argument("results", type=Path, help="Results CSV (with `_coded` factor columns)")
@@ -171,6 +173,17 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         plate_map_html=plate_map_html,
     )
     log.info("wrote %s", bench_html)
+
+    if args.pdf:
+        from screenase.bench_sheet import write_bench_sheet_pdf
+        try:
+            pdf_path = write_bench_sheet_pdf(
+                bench_html.read_text(),
+                args.out_dir / "ivt_bench_sheet.pdf",
+            )
+            log.info("wrote %s", pdf_path)
+        except ImportError as exc:
+            log.warning("%s", exc)
 
     exports = set(args.export or [])
     if "benchling" in exports:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "screenase"
-version = "0.7.0"
+version = "0.8.0"
 description = "DoE tool for in-vitro transcription reaction optimization"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -48,6 +48,9 @@ benchling = [
 serve = [
     "fastapi>=0.110",
     "uvicorn>=0.27",
+]
+pdf = [
+    "weasyprint>=60",
 ]
 
 [project.scripts]

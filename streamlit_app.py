@@ -27,7 +27,9 @@ from screenase.bench_sheet import build_context, render_bench_sheet
 from screenase.benchling.inventory import compute_reagent_consumption
 from screenase.config import Factor, ReactionConfig, Stock, config_hash
 from screenase.design import build_ccd, build_design, build_pb
+from screenase.narrate import narrate_analysis
 from screenase.plate import assign_plate, render_plate_map_html
+from screenase.share import decode_config, encode_config
 from screenase.volumes import compute_volumes, validate_volumes
 
 REPO_URL = "https://github.com/ethanarnold/screenase"
@@ -35,6 +37,23 @@ DEMO_RESULTS_PATH = Path(__file__).parent / "examples" / "results_simulated.csv"
 
 POS_COLOR = "#4a6fa5"
 NEG_COLOR = "#c05454"
+
+
+def _config_from_url() -> ReactionConfig | None:
+    """If ?cfg=… is present in the URL, decode it into a ReactionConfig."""
+    try:
+        params = st.query_params
+    except AttributeError:
+        return None
+    blob = params.get("cfg")
+    if not blob:
+        return None
+    if isinstance(blob, list):
+        blob = blob[0]
+    try:
+        return decode_config(blob)
+    except Exception:
+        return None
 
 
 def build_default_config() -> ReactionConfig:
@@ -414,6 +433,15 @@ def _render_generate_tab(
                 "On a real tenant, this would PATCH container volumes for each lot."
             )
 
+    st.markdown("#### Share")
+    blob = encode_config(cfg)
+    st.code(f"?cfg={blob}", language="text")
+    st.caption(
+        "Append this query string to the app URL to reproduce the current "
+        "sidebar state — copy the full URL out of your browser bar after "
+        "visiting it to share the link."
+    )
+
     st.markdown("#### Downloads")
     d1, d2, d3 = st.columns(3)
     d1.download_button(
@@ -522,6 +550,15 @@ def _render_analyze_tab() -> None:
         )
     else:
         st.info("No effects significant at α=0.05 — noise dominates at this N.")
+
+    narration = narrate_analysis(
+        effects, r_squared=float(fit.rsquared),
+        curvature=(
+            None if "is_center" not in results.columns
+            else curvature_test(results, response, results["is_center"].astype(bool))
+        ),
+    )
+    st.markdown(f"##### Summary\n\n{narration}")
 
     curv: dict[str, float] | None = None
     if "is_center" in results.columns:
@@ -686,7 +723,8 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    cfg, min_pipet_uL, opts = _sidebar(build_default_config())
+    starting_cfg = _config_from_url() or build_default_config()
+    cfg, min_pipet_uL, opts = _sidebar(starting_cfg)
 
     tab_gen, tab_analyze, tab_about = st.tabs([
         "Generate screen", "Analyze results", "About",
