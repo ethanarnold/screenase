@@ -1,0 +1,59 @@
+# Default IVT screen — reproduces the legacy `beretIVT_optimize_2.10.py` numeric contract.
+reaction_volume_uL: 20
+dna_template_uL: 3.2
+center_points: 3
+seed: 42
+
+factors:
+  - name: NTPs_mM_each
+    low: 5
+    high: 10
+    unit: mM
+    reagent: NTPs
+    dosing: concentration
+
+  - name: MgCl2_mM
+    low: 30
+    high: 60
+    unit: mM
+    reagent: MgCl2
+    dosing: concentration
+
+  - name: T7_uL
+    low: 0.2
+    high: 1.2
+    unit: uL
+    reagent: T7
+    dosing: volume
+
+  - name: PEG8000_pct
+    low: 0
+    high: 2
+    unit: "%"
+    reagent: PEG8000
+    dosing: concentration
+
+stocks:
+  NTPs:
+    name: NTP Mix (each)
+    concentration: 100
+    unit: mM
+  MgCl2:
+    name: MgCl2
+    concentration: 1000
+    unit: mM
+  T7:
+    name: T7 Polymerase
+    concentration: 3
+    unit: mg/mL
+  PEG8000:
+    name: PEG8000
+    concentration: 50
+    unit: "%"
+  Buffer:
+    name: Reaction Buffer
+    concentration: 20
+    unit: X
+
+fixed_reagents:
+  Buffer: 1.0

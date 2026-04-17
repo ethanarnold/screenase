@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IVT DoE Bench Sheet</title>
+    <style>@media print {
+    body { font-size: 10pt; }
+    table { page-break-inside: avoid; }
+    .no-print { display: none; }
+}
+body {
+    font-family: Arial, sans-serif;
+    max-width: 10in;
+    margin: 0 auto;
+    padding: 0.3in;
+    font-size: 11pt;
+}
+h1 { font-size: 16pt; margin-bottom: 5px; }
+h2 { font-size: 13pt; margin-top: 15px; margin-bottom: 8px; }
+.metadata { color: #555; font-size: 10pt; margin-bottom: 15px; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    margin-bottom: 15px;
+}
+th, td {
+    border: 1px solid #333;
+    padding: 4px 6px;
+    text-align: center;
+}
+th {
+    background-color: #e0e0e0;
+    font-weight: bold;
+}
+th small { font-weight: normal; font-size: 8pt; }
+.center-point { background-color: #fff3cd; }
+.checkbox-cell { width: 25px; font-size: 14pt; }
+.notes-cell { min-width: 100px; text-align: left; }
+.stock-table { width: auto; }
+.stock-table td, .stock-table th { padding: 3px 10px; }
+.legend { font-size: 9pt; color: #555; }
+.legend-box {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-color: #fff3cd;
+    border: 1px solid #333;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+.tips { font-size: 9pt; margin: 10px 0; }
+.tips li { margin-bottom: 3px; }
+.warnings {
+    background-color: #ffeaea;
+    border-left: 4px solid #c33;
+    padding: 6px 10px;
+    margin: 10px 0;
+    font-size: 10pt;
+}
+.warnings ul { margin: 4px 0 0 20px; }
+.signoff { margin-top: 20px; font-size: 10pt; }
+.signoff-line { display: inline-block; border-bottom: 1px solid #333; min-width: 180px; margin: 0 8px; }
+footer { font-size: 9pt; color: #777; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 5px; }
+footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }</style>
+</head>
+<body><h1>IVT Optimization Screen — Bench Sheet</h1>
+<p class="metadata">
+    Generated: 2026-04-17T03:12:33+00:00 |
+    Reaction Volume: 20.0 µL |
+    Design: 2^4 Full Factorial + 3 Center Points (19 runs)
+</p>
+
+<h2>Reagent Preparation</h2>
+<table class="stock-table">
+    <thead>
+        <tr><th>Reagent</th><th>Stock</th><th>Min Volume</th><th>Check</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>NTP Mix (each)</td>
+            <td>100 mM</td>
+            <td>34.2 µL</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>MgCl2</td>
+            <td>1000 mM</td>
+            <td>20.5 µL</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>T7 Polymerase</td>
+            <td>3 mg/mL</td>
+            <td>16.0 µL</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>PEG8000</td>
+            <td>50%</td>
+            <td>9.1 µL</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Reaction Buffer</td>
+            <td>20X</td>
+            <td>22.8 µL</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>DNA Template</td>
+            <td>PCR product</td>
+            <td>73.0 µL</td>
+            <td>☐</td>
+        </tr>
+        <tr>
+            <td>Nuclease-free H₂O</td>
+            <td>—</td>
+            <td>280.4 µL</td>
+            <td>☐</td>
+        </tr>
+    </tbody>
+</table>
+
+<ul class="tips">
+<li>Prepare reactions on ice</li><li>Add T7 polymerase last</li><li>Mix gently by pipetting (do not vortex)</li></ul>
+
+<h2>Pipetting Guide (all volumes in µL)</h2>
+<table>
+    <thead>
+        <tr>
+            <th class="checkbox-cell">✓</th>
+            <th>Run</th>
+            <th>NTPs<br><small>100 mM</small></th>
+            <th>MgCl2<br><small>1000 mM</small></th>
+            <th>T7<br><small>3 mg/mL</small></th>
+            <th>PEG8000<br><small>50%</small></th>
+            <th>Buffer<br><small>20X</small></th>
+            <th>DNA<br><small>PCR</small></th>
+            <th>H₂O</th>
+            <th>Total</th>
+            <th class="notes-cell">Yield / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>1</td>
+            <td>1.00</td>
+            <td>0.60</td>
+            <td>0.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>14.00</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>2</td>
+            <td>1.00</td>
+            <td>1.20</td>
+            <td>0.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.60</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>3</td>
+            <td>2.00</td>
+            <td>0.60</td>
+            <td>1.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>11.20</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>4</td>
+            <td>1.00</td>
+            <td>0.60</td>
+            <td>0.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>13.20</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>5</td>
+            <td>2.00</td>
+            <td>0.60</td>
+            <td>0.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>13.00</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="center-point">
+            <td class="checkbox-cell">☐</td>
+            <td>6</td>
+            <td>1.50</td>
+            <td>0.90</td>
+            <td>0.70</td>
+            <td>0.40</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.30</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>7</td>
+            <td>1.00</td>
+            <td>0.60</td>
+            <td>1.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.20</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>8</td>
+            <td>2.00</td>
+            <td>1.20</td>
+            <td>0.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>11.60</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>9</td>
+            <td>2.00</td>
+            <td>1.20</td>
+            <td>1.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>10.60</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="center-point">
+            <td class="checkbox-cell">☐</td>
+            <td>10</td>
+            <td>1.50</td>
+            <td>0.90</td>
+            <td>0.70</td>
+            <td>0.40</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.30</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>11</td>
+            <td>1.00</td>
+            <td>0.60</td>
+            <td>1.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>13.00</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>12</td>
+            <td>2.00</td>
+            <td>0.60</td>
+            <td>0.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.20</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="center-point">
+            <td class="checkbox-cell">☐</td>
+            <td>13</td>
+            <td>1.50</td>
+            <td>0.90</td>
+            <td>0.70</td>
+            <td>0.40</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.30</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>14</td>
+            <td>1.00</td>
+            <td>1.20</td>
+            <td>0.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>13.40</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>15</td>
+            <td>2.00</td>
+            <td>1.20</td>
+            <td>0.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.40</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>16</td>
+            <td>1.00</td>
+            <td>1.20</td>
+            <td>1.20</td>
+            <td>0.80</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>11.60</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>17</td>
+            <td>2.00</td>
+            <td>0.60</td>
+            <td>1.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.00</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>18</td>
+            <td>2.00</td>
+            <td>1.20</td>
+            <td>1.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>11.40</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+        <tr class="">
+            <td class="checkbox-cell">☐</td>
+            <td>19</td>
+            <td>1.00</td>
+            <td>1.20</td>
+            <td>1.20</td>
+            <td>0.00</td>
+            <td>1.00</td>
+            <td>3.20</td>
+            <td>12.40</td>
+            <td><strong>20.0</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+    </tbody>
+</table>
+<p class="legend">
+    <span class="legend-box"></span> = Center point (tests for curvature in response)
+</p>
+
+<div class="warnings">
+    <strong>Volume warnings</strong>
+    <ul>
+        <li>Run 1: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 2: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 4: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 5: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 8: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 12: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 14: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 15: T7 = 0.200 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 6: PEG8000 = 0.400 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 10: PEG8000 = 0.400 µL — &lt; 0.5 uL pipetting minimum</li>
+        <li>Run 13: PEG8000 = 0.400 µL — &lt; 0.5 uL pipetting minimum</li>
+    </ul>
+</div>
+
+<div class="signoff">
+    <p>
+        Operator: <span class="signoff-line"></span>
+        Date: <span class="signoff-line"></span>
+    </p>
+</div>
+
+<footer>
+    <p>
+        Design: 2^4 Full Factorial + 3 Center Points (19 runs) |
+        Seed: <code>42</code> |
+        Config hash: <code>8370450a20d1</code> |
+        Run ID: <code>run-20260417-031233</code> |
+        screenase v0.1.0
+    </p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,12 @@
+[theme]
+primaryColor = "#4a6fa5"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f6f7f9"
+textColor = "#222222"
+font = "sans serif"
+
+[server]
+headless = true
+
+# Python version for Streamlit Cloud is set via runtime.txt (or the
+# dashboard's "Advanced settings") — not in this file.

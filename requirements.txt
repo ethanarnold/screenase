@@ -1,0 +1,11 @@
+# Pinned-ish requirements for Streamlit Cloud.
+# Source of truth is pyproject.toml; this is regenerated as needed.
+numpy>=1.26
+pandas>=2.1
+jinja2>=3.1
+pydantic>=2.6
+pyyaml>=6
+statsmodels>=0.14
+matplotlib>=3.8
+streamlit>=1.32
+-e .

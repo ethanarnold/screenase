@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+build/
+.venv/
+venv/
+.DS_Store
+out/
+_legacy/
+
+# Dev-internal planning + AI-assistant context. Keep local, don't publish.
+CLAUDE.md
+PLAN.md
+*.swp
+.idea/
+.vscode/

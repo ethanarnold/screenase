@@ -1,0 +1,34 @@
+# Benchling App manifest — Screenase IVT DoE Planner
+#
+# This manifest describes the hypothetical Benchling App shape. It is not
+# deployed (requires an enterprise Benchling tenant + Developer Platform
+# access); it documents the permissions + webhook surface area that a real
+# deployment would declare.
+
+name: Screenase — IVT DoE Planner
+version: 0.1.0
+description: >
+  Plans a randomized 2^k full-factorial + center-point screen for in-vitro
+  transcription reactions, renders a print-ready bench sheet, and analyzes
+  submitted yields with OLS main-effects + 2FI.
+
+permissions:
+  - resource: requests
+    actions: [read, write]
+  - resource: results
+    actions: [read, write]
+  - resource: entries
+    actions: [read, write]
+  - resource: schemas
+    actions: [read]
+
+webhooks:
+  - event: v2.request.created
+    handler: screenase.benchling.app:handle_request_created
+  - event: v2.results.submitted
+    handler: screenase.benchling.app:handle_results_submitted
+
+schemas:
+  request: sch_screenase_doe_request
+  result: sch_screenase_doe_result
+  entry: sch_screenase_doe_analysis

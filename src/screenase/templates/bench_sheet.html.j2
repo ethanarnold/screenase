@@ -1,0 +1,113 @@
+{%- block head -%}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>IVT DoE Bench Sheet</title>
+    <style>{% include "_styles.css" %}</style>
+</head>
+<body>
+{%- endblock -%}
+
+{% block header %}
+<h1>IVT Optimization Screen — Bench Sheet</h1>
+<p class="metadata">
+    Generated: {{ meta.generated_at }} |
+    Reaction Volume: {{ meta.reaction_volume_uL|fmt(1) }} µL |
+    Design: {{ meta.design_label }}
+</p>
+{% endblock %}
+
+{% block reagent_prep %}
+<h2>Reagent Preparation</h2>
+<table class="stock-table">
+    <thead>
+        <tr><th>Reagent</th><th>Stock</th><th>Min Volume</th><th>Check</th></tr>
+    </thead>
+    <tbody>
+    {% for s in stocks %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.stock_display }}</td>
+            <td>{{ s.min_volume_uL|fmt(1) }} µL</td>
+            <td>☐</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block tips %}
+<ul class="tips">
+    {% for tip in tips %}<li>{{ tip }}</li>{% endfor %}
+</ul>
+{% endblock %}
+
+{% block pipetting_table %}
+<h2>Pipetting Guide (all volumes in µL)</h2>
+<table>
+    <thead>
+        <tr>
+            <th class="checkbox-cell">✓</th>
+            <th>Run</th>
+            {% for col in columns %}
+            <th>{{ col.label }}{% if col.sublabel %}<br><small>{{ col.sublabel }}</small>{% endif %}</th>
+            {% endfor %}
+            <th>Total</th>
+            <th class="notes-cell">Yield / Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for r in runs %}
+        <tr class="{% if r.is_center %}center-point{% endif %}">
+            <td class="checkbox-cell">☐</td>
+            <td>{{ r.run }}</td>
+            {% for col in columns %}
+            <td>{{ r[col.key]|fmt(2) }}</td>
+            {% endfor %}
+            <td><strong>{{ r.total_uL|fmt(1) }}</strong></td>
+            <td class="notes-cell"></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<p class="legend">
+    <span class="legend-box"></span> = Center point (tests for curvature in response)
+</p>
+{% endblock %}
+
+{% if warnings %}
+{% block warnings %}
+<div class="warnings">
+    <strong>Volume warnings</strong>
+    <ul>
+    {% for w in warnings %}
+        <li>Run {{ w.run }}: {{ w.reagent }} = {{ w.volume_uL|fmt(3) }} µL — {{ w.reason }}</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+{% endif %}
+
+{% block signoff %}
+<div class="signoff">
+    <p>
+        Operator: <span class="signoff-line">{{ signoff.operator }}</span>
+        Date: <span class="signoff-line">{{ signoff.date }}</span>
+    </p>
+</div>
+{% endblock %}
+
+{% block footer %}
+<footer>
+    <p>
+        Design: {{ meta.design_label }} |
+        Seed: <code>{{ meta.seed }}</code> |
+        Config hash: <code>{{ meta.config_hash }}</code> |
+        Run ID: <code>{{ meta.run_id }}</code> |
+        screenase v{{ meta.lib_version }}
+    </p>
+</footer>
+</body>
+</html>
+{% endblock %}

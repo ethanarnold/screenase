@@ -1,0 +1,716 @@
+{
+  "schemaId": "sch_screenase_doe_request",
+  "name": "Screenase DoE \u2014 run-20260417-031233",
+  "fields": {
+    "runId": {
+      "value": "run-20260417-031233"
+    },
+    "configHash": {
+      "value": "8370450a20d1"
+    },
+    "seed": {
+      "value": 42
+    },
+    "reactionVolumeUL": {
+      "value": 20.0
+    },
+    "centerPoints": {
+      "value": 3
+    },
+    "factors": {
+      "value": [
+        {
+          "name": "NTPs_mM_each",
+          "low": 5.0,
+          "high": 10.0,
+          "unit": "mM"
+        },
+        {
+          "name": "MgCl2_mM",
+          "low": 30.0,
+          "high": 60.0,
+          "unit": "mM"
+        },
+        {
+          "name": "T7_uL",
+          "low": 0.2,
+          "high": 1.2,
+          "unit": "uL"
+        },
+        {
+          "name": "PEG8000_pct",
+          "low": 0.0,
+          "high": 2.0,
+          "unit": "%"
+        }
+      ]
+    }
+  },
+  "runs": [
+    {
+      "run": 1,
+      "fields": {
+        "run": {
+          "value": 1
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 2,
+      "fields": {
+        "run": {
+          "value": 2
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 3,
+      "fields": {
+        "run": {
+          "value": 3
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 4,
+      "fields": {
+        "run": {
+          "value": 4
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 5,
+      "fields": {
+        "run": {
+          "value": 5
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 6,
+      "fields": {
+        "run": {
+          "value": 6
+        },
+        "isCenterPoint": {
+          "value": true
+        },
+        "NTPs_mM_each": {
+          "value": 7.5
+        },
+        "MgCl2_mM": {
+          "value": 45.0
+        },
+        "T7_uL": {
+          "value": 0.7
+        },
+        "PEG8000_pct": {
+          "value": 1.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 0.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 0.0
+        },
+        "T7_uL_coded": {
+          "value": 0.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 0.0
+        }
+      }
+    },
+    {
+      "run": 7,
+      "fields": {
+        "run": {
+          "value": 7
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 8,
+      "fields": {
+        "run": {
+          "value": 8
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 9,
+      "fields": {
+        "run": {
+          "value": 9
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 10,
+      "fields": {
+        "run": {
+          "value": 10
+        },
+        "isCenterPoint": {
+          "value": true
+        },
+        "NTPs_mM_each": {
+          "value": 7.5
+        },
+        "MgCl2_mM": {
+          "value": 45.0
+        },
+        "T7_uL": {
+          "value": 0.7
+        },
+        "PEG8000_pct": {
+          "value": 1.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 0.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 0.0
+        },
+        "T7_uL_coded": {
+          "value": 0.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 0.0
+        }
+      }
+    },
+    {
+      "run": 11,
+      "fields": {
+        "run": {
+          "value": 11
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 12,
+      "fields": {
+        "run": {
+          "value": 12
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 13,
+      "fields": {
+        "run": {
+          "value": 13
+        },
+        "isCenterPoint": {
+          "value": true
+        },
+        "NTPs_mM_each": {
+          "value": 7.5
+        },
+        "MgCl2_mM": {
+          "value": 45.0
+        },
+        "T7_uL": {
+          "value": 0.7
+        },
+        "PEG8000_pct": {
+          "value": 1.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 0.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 0.0
+        },
+        "T7_uL_coded": {
+          "value": 0.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 0.0
+        }
+      }
+    },
+    {
+      "run": 14,
+      "fields": {
+        "run": {
+          "value": 14
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 15,
+      "fields": {
+        "run": {
+          "value": 15
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 0.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": -0.9999999999999999
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 16,
+      "fields": {
+        "run": {
+          "value": 16
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 2.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "run": 17,
+      "fields": {
+        "run": {
+          "value": 17
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 30.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": -1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 18,
+      "fields": {
+        "run": {
+          "value": 18
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 10.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": 1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    },
+    {
+      "run": 19,
+      "fields": {
+        "run": {
+          "value": 19
+        },
+        "isCenterPoint": {
+          "value": false
+        },
+        "NTPs_mM_each": {
+          "value": 5.0
+        },
+        "MgCl2_mM": {
+          "value": 60.0
+        },
+        "T7_uL": {
+          "value": 1.2
+        },
+        "PEG8000_pct": {
+          "value": 0.0
+        },
+        "NTPs_mM_each_coded": {
+          "value": -1.0
+        },
+        "MgCl2_mM_coded": {
+          "value": 1.0
+        },
+        "T7_uL_coded": {
+          "value": 1.0
+        },
+        "PEG8000_pct_coded": {
+          "value": -1.0
+        }
+      }
+    }
+  ]
+}
