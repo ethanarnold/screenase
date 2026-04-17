@@ -7,7 +7,9 @@ Deploys to Streamlit Cloud: point at this file, free tier is sufficient.
 from __future__ import annotations
 
 import io
+from dataclasses import asdict
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -19,6 +21,12 @@ from screenase.config import Factor, ReactionConfig, Stock, config_hash
 from screenase.design import build_design
 from screenase.volumes import compute_volumes, validate_volumes
 
+REPO_URL = "https://github.com/ethanarnold/screenase"
+DEMO_RESULTS_PATH = Path(__file__).parent / "examples" / "results_simulated.csv"
+
+POS_COLOR = "#4a6fa5"
+NEG_COLOR = "#c05454"
+
 
 def build_default_config() -> ReactionConfig:
     return ReactionConfig(
@@ -27,14 +35,18 @@ def build_default_config() -> ReactionConfig:
         center_points=3,
         seed=42,
         factors=[
-            Factor(name="NTPs_mM_each", low=5, high=10, unit="mM", reagent="NTPs"),
-            Factor(name="MgCl2_mM", low=30, high=60, unit="mM", reagent="MgCl2"),
-            Factor(name="T7_uL", low=0.2, high=1.2, unit="uL", reagent="T7", dosing="volume"),
-            Factor(name="PEG8000_pct", low=0, high=2, unit="%", reagent="PEG8000"),
+            Factor(name="NTPs_mM_each", low=5, high=10, unit="mM",
+                   reagent="NTPs", display="NTPs, each (mM)"),
+            Factor(name="MgCl2_mM", low=30, high=60, unit="mM",
+                   reagent="MgCl2", display="MgCl\u2082 (mM)"),
+            Factor(name="T7_uL", low=0.2, high=1.2, unit="uL",
+                   reagent="T7", dosing="volume", display="T7 (µL)"),
+            Factor(name="PEG8000_pct", low=0, high=2, unit="%",
+                   reagent="PEG8000", display="PEG8000 (%)"),
         ],
         stocks={
             "NTPs": Stock(name="NTP Mix (each)", concentration=100, unit="mM"),
-            "MgCl2": Stock(name="MgCl2", concentration=1000, unit="mM"),
+            "MgCl2": Stock(name="MgCl\u2082", concentration=1000, unit="mM"),
             "T7": Stock(name="T7 Polymerase", concentration=3, unit="mg/mL"),
             "PEG8000": Stock(name="PEG8000", concentration=50, unit="%"),
             "Buffer": Stock(name="Reaction Buffer", concentration=20, unit="X"),
@@ -43,11 +55,11 @@ def build_default_config() -> ReactionConfig:
     )
 
 
-def generate_from_ui(cfg: ReactionConfig) -> dict:
+def generate_from_ui(cfg: ReactionConfig, min_pipet_uL: float = 0.5) -> dict:
     """Pure helper — callable from `test_streamlit_smoke.py`."""
     d = build_design(cfg)
     v = compute_volumes(d, cfg)
-    ws = validate_volumes(v, cfg)
+    ws = validate_volumes(v, cfg, min_pipet_uL=min_pipet_uL)
     run_id = datetime.now(UTC).strftime("run-%Y%m%d-%H%M%S")
     ctx = build_context(
         v, d["is_center"], cfg,
@@ -72,103 +84,425 @@ def generate_from_ui(cfg: ReactionConfig) -> dict:
     }
 
 
-def _factor_editor(cfg: ReactionConfig) -> ReactionConfig:
-    st.sidebar.header("Factors")
-    new_factors: list[Factor] = []
-    for i, f in enumerate(cfg.factors):
-        with st.sidebar.expander(f.name, expanded=False):
-            low = st.number_input(f"{f.name} low", value=float(f.low), key=f"lo{i}")
-            high = st.number_input(f"{f.name} high", value=float(f.high), key=f"hi{i}")
-        new_factors.append(f.model_copy(update={"low": low, "high": high}))
-    st.sidebar.header("Design")
-    vol = st.sidebar.number_input("Reaction volume (µL)",
-                                  value=float(cfg.reaction_volume_uL), min_value=1.0)
-    cps = st.sidebar.number_input("Center points", value=int(cfg.center_points),
-                                  min_value=0, max_value=10, step=1)
-    seed = st.sidebar.number_input("Seed", value=int(cfg.seed), step=1)
-    return cfg.model_copy(update={
-        "factors": new_factors,
-        "reaction_volume_uL": float(vol),
-        "center_points": int(cps),
-        "seed": int(seed),
-    })
+# ---------- sidebar ----------
 
+def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float]:
+    with st.sidebar:
+        st.markdown("### Reaction")
+        c1, c2 = st.columns(2)
+        vol = c1.number_input(
+            "Volume (µL)", value=float(default_cfg.reaction_volume_uL),
+            min_value=1.0, step=1.0, key="vol",
+        )
+        dna = c2.number_input(
+            "DNA (µL)", value=float(default_cfg.dna_template_uL),
+            min_value=0.0, step=0.1, key="dna",
+        )
+        c1, c2 = st.columns(2)
+        cps = c1.number_input(
+            "Center pts", min_value=0, max_value=10,
+            value=int(default_cfg.center_points), step=1, key="cps",
+        )
+        seed = c2.number_input(
+            "Seed", value=int(default_cfg.seed), step=1, key="seed",
+        )
+
+        st.markdown("### Factors")
+        st.caption("Edit low / high setpoints.")
+        factor_rows = [
+            {
+                "factor": f.display or f.name,
+                "low": float(f.low),
+                "high": float(f.high),
+            }
+            for f in default_cfg.factors
+        ]
+        edited = st.data_editor(
+            pd.DataFrame(factor_rows),
+            hide_index=True,
+            disabled=["factor"],
+            key="factors_editor",
+            column_config={
+                "factor": st.column_config.TextColumn("Factor", width="medium"),
+                "low": st.column_config.NumberColumn("Low", format="%.3g"),
+                "high": st.column_config.NumberColumn("High", format="%.3g"),
+            },
+        )
+        new_factors: list[Factor] = []
+        for orig, row in zip(default_cfg.factors, edited.itertuples(index=False),
+                             strict=True):
+            new_factors.append(orig.model_copy(update={
+                "low": float(row.low), "high": float(row.high),
+            }))
+
+        with st.expander("Stock concentrations"):
+            stock_rows = [
+                {
+                    "key": k,
+                    "name": s.name,
+                    "concentration": float(s.concentration),
+                    "unit": s.unit,
+                }
+                for k, s in default_cfg.stocks.items()
+            ]
+            stock_edit = st.data_editor(
+                pd.DataFrame(stock_rows),
+                hide_index=True,
+                disabled=["key", "name", "unit"],
+                key="stocks_editor",
+                column_config={
+                    "key": st.column_config.TextColumn("Key", width="small"),
+                    "name": st.column_config.TextColumn("Name"),
+                    "concentration": st.column_config.NumberColumn("Conc.", format="%.3g"),
+                    "unit": st.column_config.TextColumn("Unit", width="small"),
+                },
+            )
+            new_stocks = {
+                row.key: default_cfg.stocks[row.key].model_copy(update={
+                    "concentration": float(row.concentration),
+                })
+                for row in stock_edit.itertuples(index=False)
+            }
+
+        with st.expander("Fixed reagents"):
+            st.caption("Reagents with a constant volume per run (not swept).")
+            fixed_rows = [
+                {"reagent": k, "volume_uL": float(v)}
+                for k, v in default_cfg.fixed_reagents.items()
+            ]
+            fixed_edit = st.data_editor(
+                pd.DataFrame(fixed_rows),
+                hide_index=True,
+                disabled=["reagent"],
+                key="fixed_editor",
+                column_config={
+                    "reagent": st.column_config.TextColumn("Reagent"),
+                    "volume_uL": st.column_config.NumberColumn(
+                        "Volume (µL)", min_value=0.0, format="%.3g",
+                    ),
+                },
+            )
+            new_fixed = {
+                row.reagent: float(row.volume_uL)
+                for row in fixed_edit.itertuples(index=False)
+            }
+
+        with st.expander("Advanced"):
+            min_pipet = st.number_input(
+                "Min pipetting volume (µL)",
+                value=0.5, min_value=0.0, step=0.1, key="min_pipet",
+                help="Volumes below this threshold emit a warning on the bench sheet.",
+            )
+
+        st.divider()
+        if st.button("Reset to defaults", width="stretch"):
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.rerun()
+
+        new_cfg = default_cfg.model_copy(update={
+            "factors": new_factors,
+            "stocks": new_stocks,
+            "fixed_reagents": new_fixed,
+            "reaction_volume_uL": float(vol),
+            "dna_template_uL": float(dna),
+            "center_points": int(cps),
+            "seed": int(seed),
+        })
+        return new_cfg, float(min_pipet)
+
+
+# ---------- tabs ----------
+
+def _render_generate_tab(cfg: ReactionConfig, min_pipet_uL: float) -> None:
+    cache_key = f"{config_hash(cfg)}|{min_pipet_uL}"
+    if st.session_state.get("artifacts_hash") != cache_key:
+        try:
+            st.session_state["artifacts"] = generate_from_ui(cfg, min_pipet_uL=min_pipet_uL)
+            st.session_state["artifacts_hash"] = cache_key
+            st.session_state["artifacts_error"] = None
+        except Exception as exc:  # validation failure, impossible doses, etc.
+            st.session_state["artifacts_error"] = str(exc)
+
+    if st.session_state.get("artifacts_error"):
+        st.error(f"Cannot generate design: {st.session_state['artifacts_error']}")
+        return
+
+    art = st.session_state["artifacts"]
+    design = art["design"]
+    n_runs = len(design)
+    n_corners = int((~design["is_center"]).sum())
+    n_centers = int(design["is_center"].sum())
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Runs", n_runs)
+    k2.metric("Factors", len(cfg.factors))
+    k3.metric("Corners / centers", f"{n_corners} / {n_centers}")
+    k4.metric("Config hash", config_hash(cfg))
+
+    if art["warnings"]:
+        with st.expander(
+            f"{len(art['warnings'])} volume warning(s) — click to review",
+            expanded=False,
+            icon=":material/warning:",
+        ):
+            wdf = pd.DataFrame([asdict(w) for w in art["warnings"]])
+            st.dataframe(wdf, hide_index=True)
+            st.caption(
+                "These are also rendered inline on the bench sheet so the operator "
+                "sees them at the bench."
+            )
+
+    left, right = st.columns([1, 1], gap="medium")
+    with left:
+        st.markdown("#### Design")
+        display_cols = [f.name for f in cfg.factors] + ["is_center"]
+        st.dataframe(
+            design[display_cols],
+            height=540,
+            column_config={
+                "is_center": st.column_config.CheckboxColumn(
+                    "center?", help="Center-point replicate",
+                ),
+            },
+        )
+    with right:
+        st.markdown("#### Bench sheet preview")
+        st.iframe(art["html"], height=540)
+
+    st.markdown("#### Downloads")
+    d1, d2, d3 = st.columns(3)
+    d1.download_button(
+        "Screen CSV (real values)", art["csv"],
+        file_name="ivt_screen.csv", mime="text/csv",
+        width="stretch",
+    )
+    d2.download_button(
+        "Coded CSV (for analyze)", art["coded_csv"],
+        file_name="ivt_screen_coded.csv", mime="text/csv",
+        width="stretch",
+    )
+    d3.download_button(
+        "Bench sheet (HTML)", art["html"],
+        file_name="ivt_bench_sheet.html", mime="text/html",
+        width="stretch",
+    )
+
+
+def _render_analyze_tab() -> None:
+    demo_available = DEMO_RESULTS_PATH.exists()
+    st.markdown(
+        "Upload a filled-in coded CSV (download it from the **Generate** tab, fill "
+        "in the response column, then upload here) — or load the bundled demo "
+        "results to see the full analysis path end-to-end."
+    )
+
+    source = st.radio(
+        "Results source",
+        options=["Upload CSV", "Demo results"] if demo_available else ["Upload CSV"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+
+    results: pd.DataFrame | None = None
+    if source == "Upload CSV":
+        uploaded = st.file_uploader(
+            "Completed results CSV (must include `_coded` columns and a response column)",
+            type=["csv"],
+        )
+        if uploaded is not None:
+            results = pd.read_csv(uploaded)
+    else:
+        results = pd.read_csv(DEMO_RESULTS_PATH)
+        st.caption(
+            f"Loaded `{DEMO_RESULTS_PATH.name}` — "
+            f"{len(results)} rows from the seeded default design."
+        )
+
+    if results is None:
+        st.info(
+            "Upload a CSV to see the Pareto + ranked effects.",
+            icon=":material/upload_file:",
+        )
+        return
+
+    factor_cols = [c for c in results.columns if c.endswith("_coded")]
+    factor_raw = {c.removesuffix("_coded") for c in factor_cols}
+    candidates = [
+        c for c in results.columns
+        if c not in ("Run",)
+        and not c.endswith("_coded")
+        and c != "is_center"
+        and c not in factor_raw
+    ]
+    if not factor_cols:
+        st.error(
+            "No `_coded` factor columns found. Make sure you're uploading the "
+            "coded CSV from the Generate tab (not the real-values CSV)."
+        )
+        return
+    if not candidates:
+        st.error("No response column found — CSV has only factors.")
+        return
+
+    response = (
+        candidates[0] if len(candidates) == 1
+        else st.selectbox("Response column", candidates)
+    )
+    if len(candidates) == 1:
+        st.caption(f"Response: **{response}**  _(only candidate)_")
+
+    fit = fit_model(results, response, factor_cols)
+    effects = rank_effects(fit)
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("R²", f"{fit.rsquared:.3f}")
+    k2.metric("Adj. R²", f"{fit.rsquared_adj:.3f}")
+    k3.metric("df residual", int(fit.df_resid))
+    k4.metric("N", len(results))
+
+    sig_effects = [e for e in effects if e.p < 0.05]
+    if sig_effects:
+        top = ", ".join(f"`{e.term}`" for e in sig_effects[:3])
+        st.success(
+            f"**{len(sig_effects)} effect(s) significant at α=0.05.** Top drivers: {top}."
+        )
+    else:
+        st.info("No effects significant at α=0.05 — noise dominates at this N.")
+
+    left, right = st.columns([3, 2], gap="medium")
+    with left:
+        st.markdown("##### Pareto of standardized effects")
+        st.image(_render_pareto_png(effects, int(fit.df_resid)))
+    with right:
+        st.markdown("##### Ranked effects")
+        eff_df = pd.DataFrame(
+            [[e.term, e.coef, e.std_err, e.t, e.p] for e in effects],
+            columns=["term", "coef", "std_err", "t", "p"],
+        )
+        st.dataframe(
+            eff_df, hide_index=True, height=480,
+            column_config={
+                "coef": st.column_config.NumberColumn("coef", format="%.3g"),
+                "std_err": st.column_config.NumberColumn("std err", format="%.3g"),
+                "t": st.column_config.NumberColumn("t", format="%.2f"),
+                "p": st.column_config.NumberColumn("p", format="%.3g"),
+            },
+        )
+        st.download_button(
+            "Download effects CSV",
+            eff_df.to_csv(index=False).encode("utf-8"),
+            file_name=f"effects_{response}.csv",
+            mime="text/csv",
+            width="stretch",
+        )
+
+
+def _render_pareto_png(effects, df_resid: int) -> bytes:
+    from matplotlib.figure import Figure
+    from scipy.stats import t as student_t
+
+    fig = Figure(figsize=(6.5, max(2.8, 0.36 * len(effects) + 1)))
+    ax = fig.subplots()
+    terms = [e.term for e in effects]
+    abs_t = [abs(e.t) for e in effects]
+    colors = [POS_COLOR if e.coef >= 0 else NEG_COLOR for e in effects]
+    y = range(len(terms))
+    ax.barh(list(y), abs_t, color=colors)
+    ax.set_yticks(list(y))
+    ax.set_yticklabels(terms)
+    ax.invert_yaxis()
+    ax.set_xlabel("|t|  (blue = positive effect, red = negative)")
+    if df_resid and df_resid > 0:
+        t_crit = float(student_t.ppf(0.975, df_resid))
+        ax.axvline(t_crit, color="#888", linestyle="--", linewidth=1,
+                   label=f"α=0.05 (df={df_resid})")
+        ax.legend(loc="lower right", frameon=False, fontsize=8)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=140)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+def _render_about_tab() -> None:
+    st.markdown(
+        f"""
+### What this is
+
+**Screenase** plans and analyzes 2ᵏ full-factorial Design-of-Experiments screens
+for in-vitro transcription (IVT) reactions — bench-ready in one click.
+
+- **Generate**: choose factor ranges, get a randomized run table + printable
+  bench sheet with per-run pipetting volumes.
+- **Analyze**: upload the completed response column, get a Pareto of
+  standardized effects, an OLS fit (main effects + 2-factor interactions),
+  and ranked significance.
+
+The full package (CLI, tests, Benchling-App-shaped subpackage) is on GitHub.
+
+### Reproducibility
+
+Every generated design carries a 12-character **config hash** — the same config
+plus the same seed always yields byte-identical output. The default demo config
+with `seed=42` is pinned by a contract test in the repo.
+
+### Links
+
+- **Source**: [{REPO_URL}]({REPO_URL})
+- **Library version**: `screenase=={__version__}`
+"""
+    )
+
+
+# ---------- main ----------
 
 def main() -> None:
-    st.set_page_config(page_title="Screenase — IVT DoE", layout="wide",
-                       page_icon="🧪")
-    st.title("Screenase — IVT DoE Planner")
-    st.caption(f"v{__version__}  •  2^k full factorial + center points  •  bench-ready HTML")
+    st.set_page_config(
+        page_title="Screenase — IVT DoE",
+        layout="wide",
+        menu_items={
+            "Get help": REPO_URL,
+            "Report a bug": f"{REPO_URL}/issues",
+            "About": "Screenase — DoE planner for in-vitro transcription.",
+        },
+    )
 
-    base = build_default_config()
-    cfg = _factor_editor(base)
+    header_l, header_r = st.columns([3, 1])
+    with header_l:
+        st.title("Screenase")
+        st.caption(
+            "[Design-of-Experiments](https://www.mathworks.com/help/stats/design-of-experiments.html)"
+            " planner for in-vitro transcription to eliminate redundancy and speed up your science."
+        )
+    with header_r:
+        st.markdown(
+            f"<div style='text-align:right; padding-top:1.8rem; color:#888;'>"
+            f"v{__version__}  •  "
+            f"<a href='{REPO_URL}' target='_blank' style='color:#888;'>source</a>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
-    tab_gen, tab_analyze = st.tabs(["Generate screen", "Analyze results"])
+    cfg, min_pipet_uL = _sidebar(build_default_config())
 
+    tab_gen, tab_analyze, tab_about = st.tabs([
+        "Generate screen", "Analyze results", "About",
+    ])
     with tab_gen:
-        if st.button("Generate screen", type="primary") or "artifacts" not in st.session_state:
-            st.session_state["artifacts"] = generate_from_ui(cfg)
-        art = st.session_state["artifacts"]
-        col_l, col_r = st.columns([1, 1])
-        with col_l:
-            st.subheader("Design")
-            st.dataframe(art["design"], use_container_width=True, height=520)
-            if art["warnings"]:
-                st.warning(f"{len(art['warnings'])} volume warning(s) — see bench sheet")
-        with col_r:
-            st.subheader("Bench sheet preview")
-            st.components.v1.html(art["html"], height=520, scrolling=True)
-        st.download_button("Download screen CSV", art["csv"],
-                           file_name="ivt_screen.csv", mime="text/csv")
-        st.download_button("Download coded CSV (for analyze)", art["coded_csv"],
-                           file_name="ivt_screen_coded.csv", mime="text/csv")
-        st.download_button("Download bench sheet HTML", art["html"],
-                           file_name="ivt_bench_sheet.html", mime="text/html")
-
+        _render_generate_tab(cfg, min_pipet_uL)
     with tab_analyze:
-        uploaded = st.file_uploader("Completed results CSV (with `_coded` columns + response)",
-                                    type=["csv"])
-        if uploaded is None:
-            st.info("Upload a filled-in coded CSV to see the Pareto + ranked effects.")
-            return
-        results = pd.read_csv(uploaded)
-        factor_cols = [c for c in results.columns if c.endswith("_coded")]
-        factor_raw = {c.removesuffix("_coded") for c in factor_cols}
-        candidates = [c for c in results.columns
-                      if c not in ("Run",) and not c.endswith("_coded")
-                      and c != "is_center" and c not in factor_raw]
-        if not candidates:
-            st.error("No response column found — CSV has only factors.")
-            return
-        if len(candidates) == 1:
-            response = candidates[0]
-            st.caption(f"Response: **{response}** (only candidate)")
-        else:
-            response = st.selectbox("Response column", candidates)
-        if st.button("Analyze", type="primary") and response and factor_cols:
-            fit = fit_model(results, response, factor_cols)
-            effects = rank_effects(fit)
-            st.metric("R²", f"{fit.rsquared:.3f}")
-            st.metric("df_resid", int(fit.df_resid))
-            eff_df = pd.DataFrame(
-                [[e.term, e.coef, e.std_err, e.t, e.p] for e in effects],
-                columns=["term", "coef", "std_err", "t", "p"],
-            )
-            st.dataframe(eff_df, use_container_width=True)
-            buf = io.BytesIO()
-            from matplotlib.figure import Figure
-            fig = Figure(figsize=(7, max(3.0, 0.4 * len(effects) + 1)))
-            ax = fig.subplots()
-            ax.barh(range(len(effects)), [abs(e.t) for e in effects], color="#4a6fa5")
-            ax.set_yticks(range(len(effects)))
-            ax.set_yticklabels([e.term for e in effects])
-            ax.invert_yaxis()
-            ax.set_xlabel("|t|")
-            ax.set_title("Pareto of standardized effects")
-            fig.tight_layout()
-            fig.savefig(buf, format="png", dpi=120)
-            buf.seek(0)
-            st.image(buf)
+        _render_analyze_tab()
+    with tab_about:
+        _render_about_tab()
+
+    st.markdown(
+        "<div style='text-align:center; color:#999; font-size:0.8rem; "
+        "padding: 2rem 0 0.5rem;'>MIT License © Ethan Arnold</div>",
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":

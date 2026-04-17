@@ -20,6 +20,7 @@ class Factor(BaseModel):
     unit: str
     reagent: str
     dosing: Literal["concentration", "volume"] = "concentration"
+    display: str = ""
 
 
 class Stock(BaseModel):

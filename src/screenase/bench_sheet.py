@@ -97,7 +97,7 @@ def build_context(
         sub = _stock_display(fstock.unit, fstock.concentration) if fstock else ""
         columns.append({
             "key": f"{factor.reagent}{PIPET_SUFFIX}",
-            "label": factor.reagent,
+            "label": factor.display or factor.reagent,
             "sublabel": sub,
         })
     for reagent in cfg.fixed_reagents:

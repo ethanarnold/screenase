@@ -11,6 +11,7 @@ factors:
     unit: mM
     reagent: NTPs
     dosing: concentration
+    display: "NTPs, each (mM)"
 
   - name: MgCl2_mM
     low: 30
@@ -18,6 +19,7 @@ factors:
     unit: mM
     reagent: MgCl2
     dosing: concentration
+    display: "MgCl₂ (mM)"
 
   - name: T7_uL
     low: 0.2
@@ -25,6 +27,7 @@ factors:
     unit: uL
     reagent: T7
     dosing: volume
+    display: "T7 (µL)"
 
   - name: PEG8000_pct
     low: 0
@@ -32,6 +35,7 @@ factors:
     unit: "%"
     reagent: PEG8000
     dosing: concentration
+    display: "PEG8000 (%)"
 
 stocks:
   NTPs:
@@ -39,7 +43,7 @@ stocks:
     concentration: 100
     unit: mM
   MgCl2:
-    name: MgCl2
+    name: MgCl₂
     concentration: 1000
     unit: mM
   T7:
