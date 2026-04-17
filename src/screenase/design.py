@@ -84,6 +84,85 @@ def _axial_points_coded(k: int, alpha: float) -> np.ndarray:
     return pts
 
 
+# Plackett-Burman designs — Hadamard construction via generator rows.
+# Covers N = 8, 12, 16, 20, 24 (the most common PB sizes for 4 ≤ k ≤ 23).
+# Generators are "first rows" of the canonical cyclic construction
+# (Plackett & Burman 1946). The N×N Hadamard matrix is built by cycling each
+# generator N-1 times, then prepending a row of +1s; drop the first column to
+# get the design matrix.
+_PB_GENERATORS: dict[int, str] = {
+    8:  "+++-+--",
+    12: "++-+++---+-",
+    16: "++++-+-++--+---",
+    20: "++--++++-+-+----++-",
+    24: "+++++-+-++--++--+-+----",
+}
+
+
+def plackett_burman(runs: int) -> np.ndarray:
+    """Coded ±1 design matrix for a Plackett-Burman design of size `runs`.
+
+    Returns shape (runs, runs-1). Supports runs ∈ {8, 12, 16, 20, 24}.
+    """
+    if runs not in _PB_GENERATORS:
+        raise ValueError(
+            f"Plackett-Burman for runs={runs} not supported; "
+            f"choose from {sorted(_PB_GENERATORS)}"
+        )
+    gen = _PB_GENERATORS[runs]
+    row = np.array([1 if c == "+" else -1 for c in gen], dtype=int)
+    n = len(row)  # = runs - 1
+    rows = [row.copy()]
+    for _ in range(n - 1):
+        row = np.roll(row, -1)
+        rows.append(row.copy())
+    rows.append(np.full(n, -1, dtype=int))
+    return np.array(rows, dtype=int)
+
+
+def build_pb(cfg: ReactionConfig, *, runs: int) -> pd.DataFrame:
+    """Plackett-Burman screening design — coarse main-effect screen for k > 5.
+
+    Emits `runs` design points + `cfg.center_points` centers. Columns are the
+    first k of the PB matrix (`runs`-1 columns); for k < runs-1, the rest are
+    dummies.
+    """
+    k = len(cfg.factors)
+    factor_names = [f.name for f in cfg.factors]
+    matrix = plackett_burman(runs)
+    if k > matrix.shape[1]:
+        raise ValueError(
+            f"k={k} exceeds PB runs={runs} capacity (max k = {matrix.shape[1]}). "
+            f"Pick a larger `runs`."
+        )
+    coded = matrix[:, :k].astype(float)
+    df = pd.DataFrame(coded, columns=factor_names)
+    design_kinds = ["pb"] * len(df)
+
+    for f in cfg.factors:
+        mid = (f.low + f.high) / 2.0
+        half = (f.high - f.low) / 2.0
+        df[f.name] = mid + df[f.name] * half
+
+    if cfg.center_points > 0:
+        center_row = {f.name: (f.low + f.high) / 2.0 for f in cfg.factors}
+        centers = pd.DataFrame([center_row] * cfg.center_points)
+        df = pd.concat([df, centers], ignore_index=True)
+        design_kinds += ["center"] * cfg.center_points
+
+    df["design_kind"] = design_kinds
+    df = df.sample(frac=1, random_state=cfg.seed).reset_index(drop=True)
+
+    df["is_center"] = (df["design_kind"] == "center").to_numpy()
+    for f in cfg.factors:
+        mid = (f.low + f.high) / 2.0
+        half = (f.high - f.low) / 2.0
+        df[f"{f.name}_coded"] = (df[f.name] - mid) / half if half else 0.0
+
+    df.index = pd.Index(range(1, len(df) + 1), name="Run")
+    return df
+
+
 def build_ccd(
     cfg: ReactionConfig,
     *,

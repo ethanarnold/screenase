@@ -4,6 +4,21 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-04-17
+
+### Added
+
+- **Response surface contour plots (`analyze.surface_plot`):** 2D contour over
+  the two most-significant factors from an OLS fit, others held at coded zero.
+  `analyze_cli` now emits `surface.png` alongside `pareto.png`.
+- **Desirability optimization (`screenase optimize` subcommand + `analyze.optimize_response`):**
+  L-BFGS-B on the fitted polynomial inside coded bounds; emits `optimum.md`
+  plus a one-row `optimum_bench_sheet.html` for the predicted setpoints.
+  Streamlit analyze tab surfaces the optimum inline.
+- **Plackett-Burman screening design (`design.build_pb`, `design.plackett_burman`):**
+  8/12/16/20/24-run Hadamard construction for `k > 5`. CLI: `--design pb
+  --pb-runs N`. Streamlit adds a PB option in the design-type radio.
+
 ## [0.2.0] — 2026-04-17
 
 ### Added

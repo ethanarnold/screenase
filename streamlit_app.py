@@ -18,13 +18,15 @@ from screenase import __version__
 from screenase.analyze import (
     curvature_test,
     fit_model,
+    optimize_response,
     rank_effects,
     recommend_followup,
+    surface_plot,
 )
 from screenase.bench_sheet import build_context, render_bench_sheet
 from screenase.benchling.inventory import compute_reagent_consumption
 from screenase.config import Factor, ReactionConfig, Stock, config_hash
-from screenase.design import build_ccd, build_design
+from screenase.design import build_ccd, build_design, build_pb
 from screenase.plate import assign_plate, render_plate_map_html
 from screenase.volumes import compute_volumes, validate_volumes
 
@@ -78,6 +80,8 @@ def generate_from_ui(
         except (TypeError, ValueError):
             alpha_val = alpha
         d = build_ccd(cfg, alpha=alpha_val)  # type: ignore[arg-type]
+    elif design_kind == "pb":
+        d = build_pb(cfg, runs=12)
     else:
         d = build_design(cfg)
     v = compute_volumes(d, cfg)
@@ -151,12 +155,13 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
         st.markdown("### Design")
         design_kind = st.radio(
             "Type",
-            options=["full", "ccd"],
+            options=["full", "ccd", "pb"],
             index=0,
-            format_func=lambda k: (
-                "Full factorial (2ᵏ + centers)" if k == "full"
-                else "Central-composite (CCD follow-up)"
-            ),
+            format_func=lambda k: {
+                "full": "Full factorial (2ᵏ + centers)",
+                "ccd": "Central-composite (CCD follow-up)",
+                "pb": "Plackett-Burman (screening, k > 5)",
+            }[k],
             key="design_kind",
             horizontal=False,
         )
@@ -555,6 +560,42 @@ def _render_analyze_tab() -> None:
             mime="text/csv",
             width="stretch",
         )
+
+    # Surface plot + desirability optimum — only if ≥2 main effects
+    main_terms = [t for t in fit.params.index if t != "Intercept" and ":" not in t]
+    if len(main_terms) >= 2:
+        st.markdown("##### Response surface")
+        st.caption(
+            "2D contour over the two most-significant factors; others held at "
+            "the coded center."
+        )
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+            surface_plot(fit, tf.name)
+            st.image(tf.name)
+
+        with st.expander("Find the optimum (desirability)", expanded=False):
+            direction = st.radio(
+                "Direction", options=["maximize", "minimize"],
+                horizontal=True, key="opt_direction",
+            )
+            opt = optimize_response(fit, factor_cols, direction=direction)
+            opt_rows = []
+            for col in factor_cols:
+                fname = col.removesuffix("_coded")
+                coded_v = opt["coded"][col]
+                opt_rows.append({
+                    "factor": fname,
+                    "coded": coded_v,
+                })
+            st.metric("Predicted response at optimum", f"{opt['predicted']:.3g}")
+            st.dataframe(
+                pd.DataFrame(opt_rows), hide_index=True,
+                column_config={
+                    "coded": st.column_config.NumberColumn("coded ±1", format="%+.3f"),
+                },
+            )
 
 
 def _render_pareto_png(effects, df_resid: int) -> bytes:

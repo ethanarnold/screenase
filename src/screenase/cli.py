@@ -12,10 +12,10 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from screenase import __version__
-from screenase.analyze import analyze_cli
+from screenase.analyze import analyze_cli, fit_model, optimize_response
 from screenase.bench_sheet import write_bench_sheet
 from screenase.config import config_hash, load_config
-from screenase.design import build_ccd, build_design
+from screenase.design import build_ccd, build_design, build_pb
 from screenase.plate import assign_plate, render_plate_map_html, render_plate_map_png
 from screenase.volumes import compute_volumes, validate_volumes
 
@@ -44,17 +44,30 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="Also assign runs to wells on a plate and emit plate-map PNG + CSV")
     g.add_argument("--plate-layout", choices=["column-major", "row-major", "randomized"],
                    default="column-major", help="How to fill wells when --plate is set")
-    g.add_argument("--design", choices=["full", "ccd"], default="full",
+    g.add_argument("--design", choices=["full", "ccd", "pb"], default="full",
                    help="`full` (default) = 2^k full factorial + center points. "
-                        "`ccd` = central-composite follow-up (factorial + axial + center).")
+                        "`ccd` = central-composite follow-up. "
+                        "`pb` = Plackett-Burman screening for k > 5.")
     g.add_argument("--alpha", default="face",
                    help="CCD axial distance: `face` (=1, stays within low/high), "
                         "`rotatable` ((2^k)^(1/4)), or a numeric value. Ignored unless --design=ccd.")
+    g.add_argument("--pb-runs", type=int, default=12,
+                   help="Plackett-Burman run count (8, 12, 16, 20, 24). "
+                        "Ignored unless --design=pb.")
 
     a = sub.add_parser("analyze", help="Analyze a completed screen")
     a.add_argument("results", type=Path, help="Results CSV (with `_coded` factor columns)")
     a.add_argument("--response", required=True, help="Response column name")
     a.add_argument("--out-dir", type=Path, required=True, help="Output directory")
+
+    o = sub.add_parser("optimize", help="Find factor setpoints that maximize the response")
+    o.add_argument("results", type=Path, help="Results CSV (with `_coded` factor columns)")
+    o.add_argument("--response", required=True, help="Response column name")
+    o.add_argument("--config", type=Path, required=True,
+                   help="Original reaction config (to write a one-row bench sheet at the optimum)")
+    o.add_argument("--out-dir", type=Path, required=True, help="Output directory")
+    o.add_argument("--direction", choices=["maximize", "minimize"], default="maximize")
+    o.add_argument("--operator", default="", help="Operator name for bench-sheet sign-off")
     return p
 
 
@@ -70,6 +83,8 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         except (TypeError, ValueError):
             alpha_arg = args.alpha
         design = build_ccd(cfg, alpha=alpha_arg)  # type: ignore[arg-type]
+    elif args.design == "pb":
+        design = build_pb(cfg, runs=args.pb_runs)
     else:
         design = build_design(cfg)
     vol_df = compute_volumes(design, cfg)
@@ -151,7 +166,73 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
     result = analyze_cli(args.results, args.response, args.out_dir)
     log.info("wrote %s", result["pareto_png"])
     log.info("wrote %s", result["report_md"])
+    if result.get("surface_png"):
+        log.info("wrote %s", result["surface_png"])
     log.info("R² = %.3f", result["r2"])
+    return 0
+
+
+def _cmd_optimize(args: argparse.Namespace) -> int:
+    import pandas as pd
+
+    cfg = load_config(args.config)
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    results = pd.read_csv(args.results)
+    factor_cols = [c for c in results.columns if c.endswith("_coded")]
+    if not factor_cols:
+        log.error("Results CSV lacks `_coded` factor columns.")
+        return 1
+    fit = fit_model(results, args.response, factor_cols)
+    opt = optimize_response(fit, factor_cols, direction=args.direction)
+
+    # Map coded → real per config factor
+    by_coded = {f"{f.name}_coded": f for f in cfg.factors}
+    real: dict[str, float] = {}
+    for c, v in opt["coded"].items():
+        f = by_coded.get(c)
+        if f is None:
+            continue
+        mid = (f.low + f.high) / 2.0
+        half = (f.high - f.low) / 2.0
+        real[f.name] = mid + v * half
+
+    out_md = args.out_dir / "optimum.md"
+    lines = [
+        f"# Optimum: `{args.response}` ({args.direction})\n\n",
+        f"- Predicted response: **{opt['predicted']:.4g}**\n",
+        f"- scipy.optimize success: {opt['success']}\n\n",
+        "## Setpoints\n\n",
+        "| Factor | Coded | Real |\n|---|---:|---:|\n",
+    ]
+    for f in cfg.factors:
+        coded_val = opt["coded"].get(f"{f.name}_coded", 0.0)
+        real_val = real.get(f.name, 0.0)
+        lines.append(f"| `{f.name}` ({f.unit}) | {coded_val:+.3f} | {real_val:.4g} |\n")
+    out_md.write_text("".join(lines))
+    log.info("wrote %s", out_md)
+
+    # One-row bench sheet at the optimum
+    from datetime import UTC, datetime
+
+    one_row = pd.DataFrame([{**real, "is_center": False}])
+    one_row.index = pd.Index([1], name="Run")
+    for f in cfg.factors:
+        mid = (f.low + f.high) / 2.0
+        half = (f.high - f.low) / 2.0
+        one_row[f"{f.name}_coded"] = (one_row[f.name] - mid) / half if half else 0.0
+    vol_df = compute_volumes(one_row, cfg)
+    warnings = validate_volumes(vol_df, cfg)
+    bench_html = args.out_dir / "optimum_bench_sheet.html"
+    write_bench_sheet(
+        vol_df, one_row["is_center"], cfg, bench_html,
+        run_id=datetime.now(UTC).strftime("opt-%Y%m%d-%H%M%S"),
+        generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
+        lib_version=__version__,
+        config_hash=config_hash(cfg),
+        warnings=warnings,
+        operator=args.operator,
+    )
+    log.info("wrote %s", bench_html)
     return 0
 
 
@@ -163,6 +244,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_generate(args)
         if args.cmd == "analyze":
             return _cmd_analyze(args)
+        if args.cmd == "optimize":
+            return _cmd_optimize(args)
     except ValidationError as e:
         log.error("config validation failed:\n%s", e)
         return 1

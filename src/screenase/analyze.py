@@ -8,6 +8,7 @@ matplotlib.use("Agg")  # noqa: E402
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -93,6 +94,75 @@ def pareto_plot(
     fig.savefig(out, dpi=120)
     plt.close(fig)
     return out
+
+
+def surface_plot(
+    fit,
+    out_png: Path | str,
+    *,
+    x_term: str | None = None,
+    y_term: str | None = None,
+    resolution: int = 40,
+    levels: int = 12,
+) -> Path:
+    """2D contour of the fitted response over the two most-significant factors.
+
+    All other factors are held at their coded center (0). By default, picks the
+    two main-effect terms with the largest |t| from `fit`; pass `x_term` /
+    `y_term` to override.
+    """
+    out = Path(out_png)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    params = fit.params.drop("Intercept", errors="ignore")
+    tvals = fit.tvalues.drop("Intercept", errors="ignore")
+    mains = [t for t in params.index if ":" not in t]
+    if len(mains) < 2:
+        raise ValueError("surface_plot needs at least 2 main-effect terms in the fit")
+    if x_term is None or y_term is None:
+        ranked = sorted(mains, key=lambda m: abs(float(tvals.get(m, 0.0))), reverse=True)
+        x_term = x_term or ranked[0]
+        y_term = y_term or next(m for m in ranked if m != x_term)
+
+    grid = np.linspace(-1.0, 1.0, resolution)
+    X, Y = np.meshgrid(grid, grid)
+    design_row = {m: 0.0 for m in mains}
+    Z = np.zeros_like(X)
+    for i in range(resolution):
+        for j in range(resolution):
+            row = dict(design_row)
+            row[x_term] = float(X[i, j])
+            row[y_term] = float(Y[i, j])
+            Z[i, j] = _eval_fit_at(fit, row)
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    cs = ax.contourf(X, Y, Z, levels=levels, cmap="viridis")
+    ax.contour(X, Y, Z, levels=levels, colors="white", linewidths=0.4, alpha=0.5)
+    fig.colorbar(cs, ax=ax, label="predicted response")
+    ax.set_xlabel(f"{x_term} (coded)")
+    ax.set_ylabel(f"{y_term} (coded)")
+    ax.set_title(f"Response surface: {x_term} × {y_term}")
+    ax.set_aspect("equal")
+    fig.tight_layout()
+    fig.savefig(out, dpi=120)
+    plt.close(fig)
+    return out
+
+
+def _eval_fit_at(fit, coded_row: dict[str, float]) -> float:
+    """Evaluate the fitted polynomial at a coded-factor row (dict)."""
+    y = 0.0
+    intercept = float(fit.params.get("Intercept", 0.0))
+    y += intercept
+    for term, coef in fit.params.items():
+        if term == "Intercept":
+            continue
+        parts = term.split(":")
+        v = 1.0
+        for p in parts:
+            v *= float(coded_row.get(p, 0.0))
+        y += float(coef) * v
+    return y
 
 
 def curvature_test(
@@ -207,7 +277,44 @@ def analyze_cli(
             f"{followup['reason']}\n\n",
             f"```bash\n{followup['cli']}\n```\n",
         ]
+    # Surface plot if we have ≥2 main effects (standard ≥2-factor screens)
+    surface_png: str | None = None
+    mains = [t for t in fit.params.index if t != "Intercept" and ":" not in t]
+    if len(mains) >= 2:
+        surface_png = str(surface_plot(fit, out_dir / "surface.png"))
+
     report.write_text("".join(lines))
     return {"effects": effects, "pareto_png": str(png), "report_md": str(report),
             "curvature": curv, "r2": float(fit.rsquared),
-            "followup": followup}
+            "followup": followup, "surface_png": surface_png}
+
+
+def optimize_response(
+    fit,
+    factor_cols: list[str],
+    *,
+    direction: Literal["maximize", "minimize"] = "maximize",
+    bounds_coded: tuple[float, float] = (-1.0, 1.0),
+) -> dict:
+    """Find the coded factor setpoints that optimize the fitted polynomial.
+
+    Returns `{"coded": {factor: value}, "predicted": float, "success": bool}`.
+    Uses `scipy.optimize.minimize` with L-BFGS-B; the objective is the fitted
+    polynomial (negated if `direction="maximize"`).
+    """
+    from scipy.optimize import minimize
+
+    sign = -1.0 if direction == "maximize" else 1.0
+
+    def objective(x: np.ndarray) -> float:
+        row = {c: float(x[i]) for i, c in enumerate(factor_cols)}
+        return sign * _eval_fit_at(fit, row)
+
+    x0 = np.zeros(len(factor_cols))
+    result = minimize(
+        objective, x0, method="L-BFGS-B",
+        bounds=[bounds_coded] * len(factor_cols),
+    )
+    coded = {c: float(result.x[i]) for i, c in enumerate(factor_cols)}
+    predicted = _eval_fit_at(fit, coded)
+    return {"coded": coded, "predicted": predicted, "success": bool(result.success)}
