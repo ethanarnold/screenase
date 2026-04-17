@@ -4,6 +4,31 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] — 2026-04-17
+
+### Added
+
+- **Project-level organization (`screenase.project` + `screenase project
+  init/status`):** a multi-screen directory layout with a `project.yaml`
+  + `screens/<run-id>/`; `project status` scans screens and prints an
+  at-a-glance table with top term + R² parsed from each analysis report.
+- **Multi-response desirability (`multiresponse.optimize_multi_response`):**
+  Derringer-Suich composite D across multiple fitted responses. Supports
+  `maximize` / `minimize` / `target` goals with per-response weight +
+  shape exponent.
+- **Power analysis (`multiresponse.recommend_sample_size` + `screenase
+  power`):** recommends factorial runs, center points, and residual df
+  for a target effect / noise ratio at a given α, β.
+- **Reagent cost model (`multiresponse.compute_run_cost`):** per-run and
+  per-screen $ totals given a `reagent → $/µL` map. The bench sheet's
+  Jinja template now renders a cost block when `reagent_cost_per_uL` is
+  passed to `write_bench_sheet`.
+- **FastAPI webhook server (`screenase.serve` + `screenase serve`):**
+  routes mirroring the four Benchling handlers (`request_created`,
+  `results_submitted`, `reagent_consumed`, `entry_completed`) with an
+  optional `BENCHLING_HMAC_SECRET` env var that enforces request
+  signatures. Added `[serve]` extra (fastapi + uvicorn).
+
 ## [0.5.0] — 2026-04-17
 
 ### Added

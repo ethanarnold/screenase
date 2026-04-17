@@ -96,6 +96,24 @@
 {% endblock %}
 {% endif %}
 
+{% if cost %}
+{% block cost %}
+<div class="cost">
+    <strong>Reagent cost estimate</strong> —
+    total ${{ cost.screen_total|fmt(2) }}
+    across {{ runs|length }} runs
+    (avg ${{ cost.avg_per_run|fmt(2) }} / run).
+    {% if cost.per_reagent %}
+    <ul>
+    {% for row in cost.per_reagent %}
+        <li>{{ row.reagent }}: ${{ row.total|fmt(2) }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endblock %}
+{% endif %}
+
 {% block signoff %}
 <div class="signoff">
     <p>

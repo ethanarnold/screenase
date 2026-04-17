@@ -63,6 +63,28 @@ def _build_parser() -> argparse.ArgumentParser:
     a.add_argument("--response", required=True, help="Response column name")
     a.add_argument("--out-dir", type=Path, required=True, help="Output directory")
 
+    pj = sub.add_parser("project", help="Project-level organization (init, status)")
+    pj_sub = pj.add_subparsers(dest="project_cmd", required=True)
+    pj_init = pj_sub.add_parser("init", help="Initialize a new project skeleton")
+    pj_init.add_argument("root", type=Path, help="Directory to create the project in")
+    pj_init.add_argument("--name", required=True, help="Project display name")
+    pj_init.add_argument("--owner", default="", help="Project owner (email or handle)")
+    pj_status = pj_sub.add_parser("status", help="Scan screens/ and print a status table")
+    pj_status.add_argument("root", type=Path, help="Project root directory")
+
+    po = sub.add_parser("power", help="Sample-size / power calculator")
+    po.add_argument("-k", type=int, required=True, help="Number of factors")
+    po.add_argument("--effect-std", type=float, required=True,
+                    help="Expected coefficient magnitude (coded ±1)")
+    po.add_argument("--noise-std", type=float, required=True,
+                    help="Per-observation residual σ")
+    po.add_argument("--alpha", type=float, default=0.05)
+    po.add_argument("--power", type=float, default=0.80)
+
+    sv = sub.add_parser("serve", help="Run the FastAPI webhook server (requires extras)")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8000)
+
     s = sub.add_parser("benchling-scaffold",
                        help="Emit Benchling Request / Result / Entry schema JSON for admin import")
     s.add_argument("--config", type=Path, required=True, help="Path to reaction config YAML")
@@ -215,6 +237,49 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_project(args: argparse.Namespace) -> int:
+    from screenase.project import init_project, project_status
+
+    if args.project_cmd == "init":
+        root = init_project(args.root, name=args.name, owner=args.owner)
+        log.info("initialized project at %s", root)
+        return 0
+    if args.project_cmd == "status":
+        df = project_status(args.root)
+        if df.empty:
+            print("(no screens yet — run `screenase generate` inside this project)")
+            return 0
+        print(df.to_string(index=False))
+        return 0
+    return 2
+
+
+def _cmd_power(args: argparse.Namespace) -> int:
+    from screenase.multiresponse import recommend_sample_size
+
+    out = recommend_sample_size(
+        k=args.k, effect_std=args.effect_std, noise_std=args.noise_std,
+        alpha=args.alpha, power=args.power,
+    )
+    print(f"Recommended for k={args.k}, α={args.alpha}, power={args.power}:")
+    print(f"  Factorial runs: {out['factorial_runs']}")
+    print(f"  Center points:  {out['recommended_center_points']}")
+    print(f"  Total runs:     {out['total_runs']}")
+    print(f"  df_resid:       {out['df_resid']}")
+    return 0
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError:
+        log.error("`screenase serve` requires the `[serve]` extra: "
+                  "pip install 'screenase[serve]'")
+        return 1
+    uvicorn.run("screenase.serve:app", host=args.host, port=args.port, reload=False)
+    return 0
+
+
 def _cmd_benchling_scaffold(args: argparse.Namespace) -> int:
     from screenase.benchling.schemas import scaffold_all
 
@@ -330,6 +395,12 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_benchling_scaffold(args)
         if args.cmd == "schedule":
             return _cmd_schedule(args)
+        if args.cmd == "project":
+            return _cmd_project(args)
+        if args.cmd == "power":
+            return _cmd_power(args)
+        if args.cmd == "serve":
+            return _cmd_serve(args)
     except ValidationError as e:
         log.error("config validation failed:\n%s", e)
         return 1

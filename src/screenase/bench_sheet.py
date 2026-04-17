@@ -63,6 +63,7 @@ def build_context(
     signoff_date: str = "",
     tips: list[str] | None = None,
     plate_map_html: str | None = None,
+    reagent_cost_per_uL: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     totals = stock_totals(vol_df)
 
@@ -129,6 +130,20 @@ def build_context(
         f"({len(vol_df)} runs)"
     )
 
+    cost_ctx: dict[str, Any] | None = None
+    if reagent_cost_per_uL:
+        from screenase.multiresponse import compute_run_cost
+        cost = compute_run_cost(vol_df, reagent_cost_per_uL)
+        cost_ctx = {
+            "screen_total": cost["screen_total"],
+            "avg_per_run": cost["avg_per_run"],
+            "per_reagent": [
+                {"reagent": r, "total": v}
+                for r, v in sorted(cost["per_reagent_total"].items(),
+                                   key=lambda kv: -kv[1]) if v > 0
+            ],
+        }
+
     return {
         "meta": {
             "generated_at": generated_at,
@@ -146,6 +161,7 @@ def build_context(
         "signoff": {"operator": operator, "date": signoff_date},
         "tips": tips if tips is not None else DEFAULT_TIPS,
         "plate_map_html": plate_map_html,
+        "cost": cost_ctx,
     }
 
 
@@ -169,6 +185,7 @@ def write_bench_sheet(
     signoff_date: str = "",
     tips: list[str] | None = None,
     plate_map_html: str | None = None,
+    reagent_cost_per_uL: dict[str, float] | None = None,
 ) -> Path:
     ctx = build_context(
         vol_df, is_center, cfg,
@@ -181,6 +198,7 @@ def write_bench_sheet(
         signoff_date=signoff_date,
         tips=tips,
         plate_map_html=plate_map_html,
+        reagent_cost_per_uL=reagent_cost_per_uL,
     )
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
