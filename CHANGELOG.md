@@ -4,6 +4,26 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-04-17
+
+### Added
+
+- **`screenase.diagnostics` module.** Six new post-hoc analyses layered on
+  top of the OLS fit:
+  - `render_residual_diagnostics` — QQ / residuals-vs-fitted / scale-location
+    triptych; auto-flags `|studentized residual| > 3`.
+  - `lack_of_fit_test` — pure-error vs lack-of-fit F test from center-point
+    replicates; surfaces an ANOVA-style p-value in `analysis_report.md`.
+  - `bootstrap_coefficient_ci` — case-resampling bootstrap CIs + `p_boot`
+    for small-N screens where normal-theory CIs are optimistic.
+  - `half_normal_plot` — rank-based |t| vs half-normal quantiles; labels
+    the top 3 terms as the real effects.
+  - `compare_models` — AICc / BIC / adjusted R² comparison of main-only vs
+    main+2FI vs (if ≥ 3 coded levels) quadratic fits.
+  - `heteroscedasticity_tests` — Breusch-Pagan + White LM tests with p-values.
+- `analyze_cli` now emits `residuals.png`, `half_normal.png`, and extends
+  `analysis_report.md` with a Diagnostics + Model selection section.
+
 ## [0.4.0] — 2026-04-17
 
 ### Added

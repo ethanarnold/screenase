@@ -283,10 +283,58 @@ def analyze_cli(
     if len(mains) >= 2:
         surface_png = str(surface_plot(fit, out_dir / "surface.png"))
 
+    # Diagnostics: residual plots, half-normal, lack-of-fit, heteroscedasticity
+    from screenase.diagnostics import (
+        compare_models,
+        flag_outliers,
+        half_normal_plot,
+        heteroscedasticity_tests,
+        lack_of_fit_test,
+        render_residual_diagnostics,
+    )
+    diag_png = str(render_residual_diagnostics(fit, out_dir / "residuals.png"))
+    hn_png = str(half_normal_plot(effects, out_dir / "half_normal.png"))
+    outliers = flag_outliers(fit)
+    het = heteroscedasticity_tests(fit)
+    lof = None
+    if "is_center" in results.columns:
+        lof = lack_of_fit_test(fit, results, response_col,
+                               results["is_center"].astype(bool))
+    comparisons = compare_models(results, response_col, factor_cols)
+
+    lines += ["\n## Diagnostics\n\n"]
+    if outliers:
+        lines.append(f"- Outlier rows (|studentized| > 3): {outliers}\n")
+    else:
+        lines.append("- No outliers flagged.\n")
+    lines.append(
+        f"- Heteroscedasticity: Breusch-Pagan p = {het['breusch_pagan_p']:.3g}, "
+        f"White p = {het['white_p']:.3g}\n"
+    )
+    if lof:
+        lines.append(
+            f"- Lack-of-fit F = {lof.f_stat:.3g}, p = {lof.p_value:.3g} "
+            f"(df_LOF={lof.df_lof}, df_PE={lof.df_pe})\n"
+        )
+    if comparisons:
+        lines += ["\n## Model selection\n\n",
+                  "| Model | AICc | BIC | Adj R² | df_resid |\n",
+                  "|---|---:|---:|---:|---:|\n"]
+        for c in comparisons:
+            lines.append(
+                f"| `{c.name}` | {c.aicc:.2f} | {c.bic:.2f} | "
+                f"{c.adj_r2:.3f} | {c.df_resid} |\n"
+            )
+        lines.append(f"\nBest by AICc: **{comparisons[0].name}**\n")
+
     report.write_text("".join(lines))
     return {"effects": effects, "pareto_png": str(png), "report_md": str(report),
             "curvature": curv, "r2": float(fit.rsquared),
-            "followup": followup, "surface_png": surface_png}
+            "followup": followup, "surface_png": surface_png,
+            "diagnostics_png": diag_png, "half_normal_png": hn_png,
+            "outliers": outliers, "heteroscedasticity": het,
+            "lack_of_fit": lof.__dict__ if lof else None,
+            "model_comparison": [c.__dict__ for c in comparisons]}
 
 
 def optimize_response(
