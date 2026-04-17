@@ -76,6 +76,13 @@
 </p>
 {% endblock %}
 
+{% if plate_map_html %}
+{% block plate_map %}
+<h2>Plate layout</h2>
+{{ plate_map_html|safe }}
+{% endblock %}
+{% endif %}
+
 {% if warnings %}
 {% block warnings %}
 <div class="warnings">

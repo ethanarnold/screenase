@@ -15,10 +15,17 @@ import pandas as pd
 import streamlit as st
 
 from screenase import __version__
-from screenase.analyze import fit_model, rank_effects
+from screenase.analyze import (
+    curvature_test,
+    fit_model,
+    rank_effects,
+    recommend_followup,
+)
 from screenase.bench_sheet import build_context, render_bench_sheet
+from screenase.benchling.inventory import compute_reagent_consumption
 from screenase.config import Factor, ReactionConfig, Stock, config_hash
-from screenase.design import build_design
+from screenase.design import build_ccd, build_design
+from screenase.plate import assign_plate, render_plate_map_html
 from screenase.volumes import compute_volumes, validate_volumes
 
 REPO_URL = "https://github.com/ethanarnold/screenase"
@@ -55,11 +62,36 @@ def build_default_config() -> ReactionConfig:
     )
 
 
-def generate_from_ui(cfg: ReactionConfig, min_pipet_uL: float = 0.5) -> dict:
+def generate_from_ui(
+    cfg: ReactionConfig,
+    min_pipet_uL: float = 0.5,
+    *,
+    design_kind: str = "full",
+    alpha: str = "face",
+    plate: str | None = None,
+    plate_layout: str = "column-major",
+) -> dict:
     """Pure helper — callable from `test_streamlit_smoke.py`."""
-    d = build_design(cfg)
+    if design_kind == "ccd":
+        try:
+            alpha_val: float | str = float(alpha)
+        except (TypeError, ValueError):
+            alpha_val = alpha
+        d = build_ccd(cfg, alpha=alpha_val)  # type: ignore[arg-type]
+    else:
+        d = build_design(cfg)
     v = compute_volumes(d, cfg)
     ws = validate_volumes(v, cfg, min_pipet_uL=min_pipet_uL)
+
+    plate_html: str | None = None
+    plate_df: pd.DataFrame | None = None
+    if plate in ("96", "384"):
+        plate_df = assign_plate(
+            d, plate=plate, layout=plate_layout,  # type: ignore[arg-type]
+            seed=cfg.seed if plate_layout == "randomized" else None,
+        )
+        plate_html = render_plate_map_html(plate_df, plate=plate)  # type: ignore[arg-type]
+
     run_id = datetime.now(UTC).strftime("run-%Y%m%d-%H%M%S")
     ctx = build_context(
         v, d["is_center"], cfg,
@@ -68,12 +100,16 @@ def generate_from_ui(cfg: ReactionConfig, min_pipet_uL: float = 0.5) -> dict:
         lib_version=__version__,
         config_hash=config_hash(cfg),
         warnings=ws,
+        plate_map_html=plate_html,
     )
     html = render_bench_sheet(ctx)
     factor_cols = [f.name for f in cfg.factors]
     coded_cols = [c for c in d.columns if c.endswith("_coded")]
+    extra_cols = [c for c in ("is_center", "design_kind") if c in d.columns]
     csv_bytes = d[factor_cols].to_csv().encode("utf-8")
-    coded_bytes = d[factor_cols + coded_cols + ["is_center"]].to_csv().encode("utf-8")
+    coded_bytes = d[factor_cols + coded_cols + extra_cols].to_csv().encode("utf-8")
+
+    consumption = compute_reagent_consumption(v, cfg, excess=1.2)
     return {
         "design": d,
         "volumes": v,
@@ -81,12 +117,17 @@ def generate_from_ui(cfg: ReactionConfig, min_pipet_uL: float = 0.5) -> dict:
         "csv": csv_bytes,
         "coded_csv": coded_bytes,
         "warnings": ws,
+        "plate_df": plate_df,
+        "plate_map_html": plate_html,
+        "plate": plate,
+        "design_kind": design_kind,
+        "consumption": consumption,
     }
 
 
 # ---------- sidebar ----------
 
-def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float]:
+def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
     with st.sidebar:
         st.markdown("### Reaction")
         c1, c2 = st.columns(2)
@@ -106,6 +147,50 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float]:
         seed = c2.number_input(
             "Seed", value=int(default_cfg.seed), step=1, key="seed",
         )
+
+        st.markdown("### Design")
+        design_kind = st.radio(
+            "Type",
+            options=["full", "ccd"],
+            index=0,
+            format_func=lambda k: (
+                "Full factorial (2ᵏ + centers)" if k == "full"
+                else "Central-composite (CCD follow-up)"
+            ),
+            key="design_kind",
+            horizontal=False,
+        )
+        alpha = "face"
+        if design_kind == "ccd":
+            alpha = st.select_slider(
+                "Axial α",
+                options=["face", "rotatable"],
+                value="face",
+                help=(
+                    "`face` (α=1) stays within low/high; `rotatable` extends "
+                    "axial setpoints beyond the range — use only if your "
+                    "stocks allow the wider span."
+                ),
+                key="ccd_alpha",
+            )
+
+        st.markdown("### Plate layout")
+        plate_choice = st.radio(
+            "Plate",
+            options=["none", "96", "384"],
+            horizontal=True,
+            index=0,
+            key="plate_choice",
+        )
+        plate_layout = "column-major"
+        if plate_choice != "none":
+            plate_layout = st.radio(
+                "Fill order",
+                options=["column-major", "row-major", "randomized"],
+                index=0,
+                horizontal=True,
+                key="plate_layout",
+            )
 
         st.markdown("### Factors")
         st.caption("Edit low / high setpoints.")
@@ -209,16 +294,36 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float]:
             "center_points": int(cps),
             "seed": int(seed),
         })
-        return new_cfg, float(min_pipet)
+        opts = {
+            "design_kind": design_kind,
+            "alpha": alpha,
+            "plate": None if plate_choice == "none" else plate_choice,
+            "plate_layout": plate_layout,
+        }
+        return new_cfg, float(min_pipet), opts
 
 
 # ---------- tabs ----------
 
-def _render_generate_tab(cfg: ReactionConfig, min_pipet_uL: float) -> None:
-    cache_key = f"{config_hash(cfg)}|{min_pipet_uL}"
+def _render_generate_tab(
+    cfg: ReactionConfig,
+    min_pipet_uL: float,
+    opts: dict,
+) -> None:
+    cache_key = "|".join([
+        config_hash(cfg), str(min_pipet_uL),
+        opts["design_kind"], str(opts["alpha"]),
+        str(opts["plate"]), opts["plate_layout"],
+    ])
     if st.session_state.get("artifacts_hash") != cache_key:
         try:
-            st.session_state["artifacts"] = generate_from_ui(cfg, min_pipet_uL=min_pipet_uL)
+            st.session_state["artifacts"] = generate_from_ui(
+                cfg, min_pipet_uL=min_pipet_uL,
+                design_kind=opts["design_kind"],
+                alpha=opts["alpha"],
+                plate=opts["plate"],
+                plate_layout=opts["plate_layout"],
+            )
             st.session_state["artifacts_hash"] = cache_key
             st.session_state["artifacts_error"] = None
         except Exception as exc:  # validation failure, impossible doses, etc.
@@ -237,7 +342,12 @@ def _render_generate_tab(cfg: ReactionConfig, min_pipet_uL: float) -> None:
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Runs", n_runs)
     k2.metric("Factors", len(cfg.factors))
-    k3.metric("Corners / centers", f"{n_corners} / {n_centers}")
+    if opts["design_kind"] == "ccd":
+        n_axial = int((design.get("design_kind") == "axial").sum()) if "design_kind" in design.columns else 0
+        n_factorial = int((design.get("design_kind") == "factorial").sum()) if "design_kind" in design.columns else 0
+        k3.metric("Factorial / axial / centers", f"{n_factorial} / {n_axial} / {n_centers}")
+    else:
+        k3.metric("Corners / centers", f"{n_corners} / {n_centers}")
     k4.metric("Config hash", config_hash(cfg))
 
     if art["warnings"]:
@@ -270,6 +380,35 @@ def _render_generate_tab(cfg: ReactionConfig, min_pipet_uL: float) -> None:
         st.markdown("#### Bench sheet preview")
         st.iframe(art["html"], height=540)
 
+    if art.get("plate_df") is not None:
+        st.markdown("#### Plate layout")
+        st.caption(
+            f"{opts['plate']}-well plate · {opts['plate_layout']} · "
+            f"{int(art['plate_df']['plate'].max())} plate(s)"
+        )
+        st.components.v1.html(art["plate_map_html"], height=420, scrolling=True)
+
+    if art.get("consumption"):
+        with st.expander("Inventory consumption (Benchling-shaped)", expanded=False):
+            cons = art["consumption"]
+            cdf = pd.DataFrame(
+                [(k, v) for k, v in cons.items()],
+                columns=["reagent", "volume_uL"],
+            ).sort_values("volume_uL", ascending=False)
+            st.dataframe(
+                cdf, hide_index=True,
+                column_config={
+                    "volume_uL": st.column_config.NumberColumn(
+                        "µL (incl. 20% excess)", format="%.2f",
+                    ),
+                },
+            )
+            st.caption(
+                "These totals shape a Benchling inventory decrement payload via "
+                "`screenase.benchling.inventory.build_inventory_decrement_payload`. "
+                "On a real tenant, this would PATCH container volumes for each lot."
+            )
+
     st.markdown("#### Downloads")
     d1, d2, d3 = st.columns(3)
     d1.download_button(
@@ -287,6 +426,15 @@ def _render_generate_tab(cfg: ReactionConfig, min_pipet_uL: float) -> None:
         file_name="ivt_bench_sheet.html", mime="text/html",
         width="stretch",
     )
+    if art.get("plate_df") is not None:
+        plate_csv_bytes = (
+            art["plate_df"][["plate", "well", "row_letter", "col_number", "is_center"]]
+            .to_csv().encode("utf-8")
+        )
+        st.download_button(
+            "Plate layout CSV", plate_csv_bytes,
+            file_name="plate_layout.csv", mime="text/csv",
+        )
 
 
 def _render_analyze_tab() -> None:
@@ -369,6 +517,17 @@ def _render_analyze_tab() -> None:
         )
     else:
         st.info("No effects significant at α=0.05 — noise dominates at this N.")
+
+    curv: dict[str, float] | None = None
+    if "is_center" in results.columns:
+        curv = curvature_test(results, response, results["is_center"].astype(bool))
+    rec = recommend_followup(curv)
+    if rec:
+        st.warning(
+            f"**{rec['headline']}** — {rec['reason']}\n\n"
+            f"```bash\n{rec['cli']}\n```",
+            icon=":material/science:",
+        )
 
     left, right = st.columns([3, 2], gap="medium")
     with left:
@@ -486,13 +645,13 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    cfg, min_pipet_uL = _sidebar(build_default_config())
+    cfg, min_pipet_uL, opts = _sidebar(build_default_config())
 
     tab_gen, tab_analyze, tab_about = st.tabs([
         "Generate screen", "Analyze results", "About",
     ])
     with tab_gen:
-        _render_generate_tab(cfg, min_pipet_uL)
+        _render_generate_tab(cfg, min_pipet_uL, opts)
     with tab_analyze:
         _render_analyze_tab()
     with tab_about:

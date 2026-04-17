@@ -122,6 +122,37 @@ def curvature_test(
     }
 
 
+def recommend_followup(
+    curv: dict[str, float] | None,
+    *,
+    alpha: float = 0.05,
+) -> dict[str, str] | None:
+    """If curvature is significant, suggest a CCD follow-up.
+
+    Returns `None` when there's no curvature signal, otherwise a dict with
+    `headline`, `reason`, and a copy-pasteable `cli` command for the next
+    experiment.
+    """
+    if not curv:
+        return None
+    p = curv.get("p")
+    if p is None or (isinstance(p, float) and (p != p)):  # NaN
+        return None
+    if p >= alpha:
+        return None
+    direction = "above" if curv["mean_center"] > curv["mean_corner"] else "below"
+    return {
+        "headline": "Curvature is significant — run a central-composite follow-up",
+        "reason": (
+            f"Center-point mean is {direction} the corner-point mean "
+            f"(Δ = {curv['mean_center'] - curv['mean_corner']:.4g}, p = {p:.4g}). "
+            "The main + 2FI model likely underfits; a quadratic model from a "
+            "CCD will capture the curvature."
+        ),
+        "cli": "screenase generate --config <same.yaml> --design ccd --alpha face --out-dir out-ccd/",
+    }
+
+
 def analyze_cli(
     results_path: Path,
     response_col: str,
@@ -145,6 +176,7 @@ def analyze_cli(
     curv: dict[str, float] | None = None
     if "is_center" in results.columns:
         curv = curvature_test(results, response_col, results["is_center"].astype(bool))
+    followup = recommend_followup(curv)
 
     report = out_dir / "analysis_report.md"
     lines = [
@@ -168,6 +200,14 @@ def analyze_cli(
             f"- Mean at corners: {curv['mean_corner']:.4g}\n",
             f"- t = {curv['t']:.3f}, p = {curv['p']:.4g}\n",
         ]
+    if followup:
+        lines += [
+            "\n## Suggested follow-up\n\n",
+            f"**{followup['headline']}**\n\n",
+            f"{followup['reason']}\n\n",
+            f"```bash\n{followup['cli']}\n```\n",
+        ]
     report.write_text("".join(lines))
     return {"effects": effects, "pareto_png": str(png), "report_md": str(report),
-            "curvature": curv, "r2": float(fit.rsquared)}
+            "curvature": curv, "r2": float(fit.rsquared),
+            "followup": followup}

@@ -4,10 +4,11 @@
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://screenase.streamlit.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Plan a randomized 2^k full-factorial DoE screen for in-vitro transcription
-reactions, print a bench-ready pipetting sheet, and analyze the resulting
-yields — all from a single CLI, a Streamlit web app, or a Benchling-App-shaped
-Python subpackage.
+Plan a randomized 2^k full-factorial (or central-composite follow-up) DoE
+screen for in-vitro transcription reactions, assign wells on a 96-/384-well
+plate, print a bench-ready pipetting sheet, and analyze the resulting yields —
+all from a single CLI, a Streamlit web app, or a Benchling-App-shaped Python
+subpackage.
 
 > **Live demo:** **[screenase.streamlit.app](https://screenase.streamlit.app/)** — click Generate, download the bench sheet, upload a results CSV to see the Pareto.
 > `docs/screenshots/cli_demo.gif` shows the generate → bench sheet → analyze loop.
@@ -44,7 +45,33 @@ screenase analyze my_results.csv --response yield_ug_per_uL --out-dir out/
 ```
 
 This writes `out/pareto.png` + `out/analysis_report.md` with ranked effects and
-a center-point curvature test.
+a center-point curvature test. If the curvature is significant at α = 0.05,
+the report suggests a central-composite follow-up with the exact CLI invocation.
+
+## Plate layout
+
+For screens that ship to a 96- or 384-well plate, pass `--plate`:
+
+```bash
+screenase generate --config examples/config.yaml --out-dir out/ --plate 96 --plate-layout column-major
+```
+
+This writes `out/plate_layout.csv` + `out/plate_map.png` and embeds the
+plate-map table inside the bench sheet. Layout modes: `column-major` (default,
+fills A1..H1, then A2..H2, ...), `row-major` (fills A1..A12, then B1..B12, ...),
+or `randomized` (seeded shuffle, reproducible).
+
+## Central-composite follow-up
+
+When the curvature test from `screenase analyze` rejects the main-effects model:
+
+```bash
+screenase generate --config examples/config.yaml --out-dir out-ccd/ --design ccd --alpha face
+```
+
+Emits a 2ᵏ factorial + 2k axial + N center CCD. `--alpha face` (default) keeps
+axial setpoints within `low/high`; `--alpha rotatable` uses α = (2ᵏ)^(1/4) for
+a rotatable design (only use this if your stocks allow the wider range).
 
 ## Customizing factors
 
@@ -78,8 +105,22 @@ The hosted app wraps the same `screenase` package — two tabs:
 ## Benchling integration
 
 `src/screenase/benchling/` shapes Screenase as a Benchling App: a manifest,
-SDK-style webhook handlers, and entity mapping that converts the design/results
-into Benchling Request/Result/Entry payload shapes.
+SDK-style webhook handlers, and entity mapping that converts the design /
+results / inventory consumption into Benchling Request / Result / Entry /
+Container-decrement payload shapes.
+
+Handlers (runnable locally against fixtures, no live tenant needed):
+
+- `handle_request_created` — build the design + bench sheet, return the Request payload.
+- `handle_results_submitted` — run OLS on submitted responses, return the Entry payload.
+- `handle_reagent_consumed` — sum reagent pipetting, return a container-decrement payload.
+
+Or from the CLI:
+
+```bash
+screenase generate --config examples/config.yaml --out-dir out/ \
+    --export benchling --export benchling-inventory --lot-refs lot_refs.json
+```
 
 - **What runs locally:** webhook handlers against fixture payloads
   (`fixtures/*.json`). `python -c "from screenase.benchling.app import run_fixture; run_fixture('...')"`.

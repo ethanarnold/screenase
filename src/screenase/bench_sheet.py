@@ -62,6 +62,7 @@ def build_context(
     operator: str = "",
     signoff_date: str = "",
     tips: list[str] | None = None,
+    plate_map_html: str | None = None,
 ) -> dict[str, Any]:
     totals = stock_totals(vol_df)
 
@@ -144,6 +145,7 @@ def build_context(
         "warnings": warnings or [],
         "signoff": {"operator": operator, "date": signoff_date},
         "tips": tips if tips is not None else DEFAULT_TIPS,
+        "plate_map_html": plate_map_html,
     }
 
 
@@ -166,6 +168,7 @@ def write_bench_sheet(
     operator: str = "",
     signoff_date: str = "",
     tips: list[str] | None = None,
+    plate_map_html: str | None = None,
 ) -> Path:
     ctx = build_context(
         vol_df, is_center, cfg,
@@ -177,6 +180,7 @@ def write_bench_sheet(
         operator=operator,
         signoff_date=signoff_date,
         tips=tips,
+        plate_map_html=plate_map_html,
     )
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)

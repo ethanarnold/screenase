@@ -3,7 +3,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from screenase.analyze import analyze_cli, fit_model, pareto_plot, rank_effects
+from screenase.analyze import (
+    analyze_cli,
+    fit_model,
+    pareto_plot,
+    rank_effects,
+    recommend_followup,
+)
 from screenase.design import build_design
 
 
@@ -69,3 +75,43 @@ def test_analyze_cli_writes_report_and_png(results, tmp_path):
     assert "yield_ug_per_uL" in text
     assert "|" in text  # markdown table
     assert summary["r2"] > 0.9
+
+
+def test_recommend_followup_triggers_on_significant_curvature():
+    """When p < 0.05 and centers sit well off the corner mean, recommend CCD."""
+    curv = {"mean_center": 10.0, "mean_corner": 2.0, "t": 5.4, "p": 0.001}
+    rec = recommend_followup(curv)
+    assert rec is not None
+    assert "central-composite" in rec["headline"].lower()
+    assert "--design ccd" in rec["cli"]
+
+
+def test_recommend_followup_none_when_curvature_not_significant():
+    curv = {"mean_center": 3.1, "mean_corner": 3.0, "t": 0.2, "p": 0.5}
+    assert recommend_followup(curv) is None
+
+
+def test_recommend_followup_none_when_curv_missing():
+    assert recommend_followup(None) is None
+    assert recommend_followup({"t": float("nan"), "p": float("nan")}) is None
+
+
+def test_analyze_cli_emits_followup_block(cfg, tmp_path):
+    """Curvy synthetic: y = 5 − 3*(x1² + x2²) + noise. Centers sit well above corners."""
+    rng = np.random.default_rng(1)
+    d = build_design(cfg)
+    coded_cols = [c for c in d.columns if c.endswith("_coded")]
+    x = d[coded_cols].to_numpy()
+    y = 5.0 - 3.0 * (x ** 2).sum(axis=1) + rng.normal(0, 0.05, size=len(d))
+    d = d.copy()
+    d["yield_ug_per_uL"] = y
+
+    csv = tmp_path / "results.csv"
+    d.to_csv(csv)
+    out_dir = tmp_path / "out"
+    summary = analyze_cli(csv, "yield_ug_per_uL", out_dir)
+    assert summary["followup"] is not None
+    assert "central-composite" in summary["followup"]["headline"].lower()
+    report_text = (out_dir / "analysis_report.md").read_text()
+    assert "Suggested follow-up" in report_text
+    assert "--design ccd" in report_text

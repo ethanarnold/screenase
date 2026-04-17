@@ -66,7 +66,7 @@ footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }</styl
 </head>
 <body><h1>IVT Optimization Screen — Bench Sheet</h1>
 <p class="metadata">
-    Generated: 2026-04-17T03:12:33+00:00 |
+    Generated: 2026-04-17T06:05:39+00:00 |
     Reaction Volume: 20.0 µL |
     Design: 2^4 Full Factorial + 3 Center Points (19 runs)
 </p>
@@ -84,7 +84,7 @@ footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }</styl
             <td>☐</td>
         </tr>
         <tr>
-            <td>MgCl2</td>
+            <td>MgCl₂</td>
             <td>1000 mM</td>
             <td>20.5 µL</td>
             <td>☐</td>
@@ -131,10 +131,10 @@ footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }</styl
         <tr>
             <th class="checkbox-cell">✓</th>
             <th>Run</th>
-            <th>NTPs<br><small>100 mM</small></th>
-            <th>MgCl2<br><small>1000 mM</small></th>
-            <th>T7<br><small>3 mg/mL</small></th>
-            <th>PEG8000<br><small>50%</small></th>
+            <th>NTPs, each (mM)<br><small>100 mM</small></th>
+            <th>MgCl₂ (mM)<br><small>1000 mM</small></th>
+            <th>T7 (µL)<br><small>3 mg/mL</small></th>
+            <th>PEG8000 (%)<br><small>50%</small></th>
             <th>Buffer<br><small>20X</small></th>
             <th>DNA<br><small>PCR</small></th>
             <th>H₂O</th>
@@ -396,6 +396,23 @@ footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }</styl
     <span class="legend-box"></span> = Center point (tests for curvature in response)
 </p>
 
+<h2>Plate layout</h2>
+<style>
+.plate-map{border-collapse:collapse;font-family:system-ui,sans-serif;font-size:12px;margin:1em 0;}.plate-map th,.plate-map td{border:1px solid #ccc;padding:4px 6px;text-align:center;min-width:28px;}.plate-map th{background:#f4f4f4;}.plate-map td.empty{background:#fafafa;color:#bbb;}.plate-map td.center{background:#fff3cd;}.plate-map .caption{font-weight:600;margin:0.5em 0 0.2em;}
+</style>
+<div class="caption">Plate 1</div>
+<table class="plate-map">
+<tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th></tr>
+<tr><th>A</th><td class="">1</td><td class="">9</td><td class="">17</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>B</th><td class="">2</td><td class="center">10</td><td class="">18</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>C</th><td class="">3</td><td class="">11</td><td class="">19</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>D</th><td class="">4</td><td class="">12</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>E</th><td class="">5</td><td class="center">13</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>F</th><td class="center">6</td><td class="">14</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>G</th><td class="">7</td><td class="">15</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+<tr><th>H</th><td class="">8</td><td class="">16</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td><td class="empty">·</td></tr>
+</table>
+
 <div class="warnings">
     <strong>Volume warnings</strong>
     <ul>
@@ -424,9 +441,9 @@ footer code { background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }</styl
     <p>
         Design: 2^4 Full Factorial + 3 Center Points (19 runs) |
         Seed: <code>42</code> |
-        Config hash: <code>8370450a20d1</code> |
-        Run ID: <code>run-20260417-031233</code> |
-        screenase v0.1.0
+        Config hash: <code>1778c0ce6fa9</code> |
+        Run ID: <code>run-20260417-060539</code> |
+        screenase v0.2.0
     </p>
 </footer>
 </body>

@@ -25,6 +25,7 @@ from screenase.benchling.entities import (
     design_to_benchling_request,
     effects_to_benchling_entry,
 )
+from screenase.benchling.inventory import post_run_inventory_summary
 from screenase.config import ReactionConfig, config_hash
 from screenase.design import build_design
 from screenase.volumes import compute_volumes, validate_volumes
@@ -105,6 +106,40 @@ def handle_results_submitted(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def handle_reagent_consumed(payload: dict[str, Any]) -> dict[str, Any]:
+    """Handle a `reagent_consumed` webhook: emit an inventory decrement payload.
+
+    Expected payload fields:
+    - `config`: the ReactionConfig body (same as `request_created`)
+    - `lotRefs`: `{reagent: {containerId, lotId}}` mapping reagents to
+      Benchling container/lot references
+    - `runId` (optional): run identifier to include in the decrement payload
+    - `excess` (optional, default 1.2): multiplier for dead volume / loss
+    - `dryRun` (optional, default True): if true, the decrement is advisory only
+
+    Runs the design + volumes pipeline to compute total consumption, then shapes
+    a Benchling-compatible decrement payload.
+    """
+    cfg = _load_config_from_payload(payload)
+    lot_refs = payload.get("lotRefs") or {}
+    if not isinstance(lot_refs, dict):
+        raise ValueError("webhook payload `lotRefs` must be an object")
+    run_id = payload.get("runId") or datetime.now(UTC).strftime("run-%Y%m%d-%H%M%S")
+    excess = float(payload.get("excess", 1.2))
+    dry_run = bool(payload.get("dryRun", True))
+
+    design = build_design(cfg)
+    vol_df = compute_volumes(design, cfg)
+    summary = post_run_inventory_summary(
+        vol_df, cfg, lot_refs, run_id=run_id, excess=excess, dry_run=dry_run,
+    )
+    return {
+        "runId": run_id,
+        "configHash": config_hash(cfg),
+        **summary,
+    }
+
+
 def run_fixture(fixture_path: Path | str, handler: str = "request_created") -> dict[str, Any]:
     """Utility: dispatch a local fixture JSON through the named handler."""
     payload = json.loads(Path(fixture_path).read_text())
@@ -112,4 +147,6 @@ def run_fixture(fixture_path: Path | str, handler: str = "request_created") -> d
         return handle_request_created(payload)
     if handler == "results_submitted":
         return handle_results_submitted(payload)
+    if handler == "reagent_consumed":
+        return handle_reagent_consumed(payload)
     raise ValueError(f"unknown handler {handler!r}")

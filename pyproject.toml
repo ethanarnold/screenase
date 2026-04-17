@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "screenase"
-version = "0.1.0"
+version = "0.2.0"
 description = "DoE tool for in-vitro transcription reaction optimization"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -37,6 +37,7 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.8",
     "types-PyYAML",
+    "hypothesis>=6.100",
 ]
 ui = [
     "streamlit>=1.32",
