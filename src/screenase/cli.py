@@ -31,11 +31,14 @@ def _build_parser() -> argparse.ArgumentParser:
     g.add_argument("--config", type=Path, required=True, help="Path to reaction config YAML")
     g.add_argument("--out-dir", type=Path, required=True, help="Output directory")
     g.add_argument("--seed", type=int, default=None, help="Override config.seed")
-    g.add_argument("--export", choices=["benchling", "benchling-inventory"],
+    g.add_argument("--export",
+                   choices=["benchling", "benchling-inventory", "echo", "ot2"],
                    default=None, action="append",
-                   help="Also emit Benchling-shaped payloads. `benchling` writes the "
+                   help="Also emit an additional artifact. `benchling` writes the "
                         "Request JSON; `benchling-inventory` writes the inventory "
-                        "decrement JSON. May be passed multiple times.")
+                        "decrement JSON; `echo` writes a Labcyte Echo transfer CSV; "
+                        "`ot2` writes an Opentrons OT-2 Python protocol. "
+                        "May be passed multiple times.")
     g.add_argument("--lot-refs", type=Path, default=None,
                    help="JSON file mapping reagents → {containerId, lotId}. "
                         "Used with --export benchling-inventory.")
@@ -59,6 +62,19 @@ def _build_parser() -> argparse.ArgumentParser:
     a.add_argument("results", type=Path, help="Results CSV (with `_coded` factor columns)")
     a.add_argument("--response", required=True, help="Response column name")
     a.add_argument("--out-dir", type=Path, required=True, help="Output directory")
+
+    s = sub.add_parser("benchling-scaffold",
+                       help="Emit Benchling Request / Result / Entry schema JSON for admin import")
+    s.add_argument("--config", type=Path, required=True, help="Path to reaction config YAML")
+    s.add_argument("--out-dir", type=Path, required=True, help="Output directory")
+
+    sch = sub.add_parser("schedule",
+                         help="Plan a wall-clock schedule from a plate-layout CSV")
+    sch.add_argument("plate_csv", type=Path, help="plate_layout.csv from `screenase generate --plate …`")
+    sch.add_argument("--out-dir", type=Path, required=True, help="Output directory")
+    sch.add_argument("--incubate-min", type=float, default=120.0)
+    sch.add_argument("--read-min", type=float, default=15.0)
+    sch.add_argument("--pipet-min-per-run", type=float, default=1.0)
 
     o = sub.add_parser("optimize", help="Find factor setpoints that maximize the response")
     o.add_argument("results", type=Path, help="Results CSV (with `_coded` factor columns)")
@@ -106,6 +122,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     is_center = design["is_center"]
 
     plate_map_html: str | None = None
+    assigned = None
     if args.plate:
         assigned = assign_plate(
             design, plate=args.plate, layout=args.plate_layout,
@@ -140,6 +157,24 @@ def _cmd_generate(args: argparse.Namespace) -> int:
         out = args.out_dir / "benchling_request.json"
         out.write_text(json.dumps(payload, indent=2))
         log.info("wrote %s", out)
+    if "echo" in exports:
+        if assigned is None:
+            log.error("--export echo requires --plate")
+            return 1
+        from screenase.automation import write_echo_csv
+        echo_out = args.out_dir / "echo_transfer.csv"
+        write_echo_csv(vol_df, assigned, echo_out)
+        log.info("wrote %s", echo_out)
+    if "ot2" in exports:
+        if assigned is None:
+            log.error("--export ot2 requires --plate")
+            return 1
+        from screenase.automation import write_ot2_protocol
+        ot2_out = args.out_dir / "ot2_protocol.py"
+        write_ot2_protocol(vol_df, assigned, cfg, ot2_out,
+                           run_id=run_id, version=__version__,
+                           plate_size=int(args.plate))
+        log.info("wrote %s", ot2_out)
     if "benchling-inventory" in exports:
         from screenase.benchling.inventory import post_run_inventory_summary
         lot_refs: dict[str, dict[str, str]] = {}
@@ -156,6 +191,14 @@ def _cmd_generate(args: argparse.Namespace) -> int:
                 "%d reagent(s) missing lot refs — pass --lot-refs to resolve",
                 len(summary["payload"]["unresolved"]),
             )
+        # Lot-expiry warnings — only fire when lot_refs carry expiryDate fields
+        if lot_refs:
+            from datetime import date
+
+            from screenase.scheduling import check_lot_expiry
+            lot_warns = check_lot_expiry(lot_refs, today=date.today().isoformat())
+            for w in lot_warns:
+                log.warning("lot-expiry: %s (%s) — %s", w.reagent, w.lot_id, w.reason)
 
     if warnings:
         log.warning("%d volume warning(s) — see bench sheet", len(warnings))
@@ -169,6 +212,43 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
     if result.get("surface_png"):
         log.info("wrote %s", result["surface_png"])
     log.info("R² = %.3f", result["r2"])
+    return 0
+
+
+def _cmd_benchling_scaffold(args: argparse.Namespace) -> int:
+    from screenase.benchling.schemas import scaffold_all
+
+    cfg = load_config(args.config)
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    for kind, schema in scaffold_all(cfg).items():
+        out = args.out_dir / f"{kind}_schema.json"
+        out.write_text(json.dumps(schema, indent=2))
+        log.info("wrote %s", out)
+    return 0
+
+
+def _cmd_schedule(args: argparse.Namespace) -> int:
+    import pandas as pd
+
+    from screenase.scheduling import plan_schedule, render_gantt_png
+
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    plate_df = pd.read_csv(args.plate_csv, index_col=0)
+    stages = plan_schedule(
+        plate_df,
+        pipet_min_per_run=args.pipet_min_per_run,
+        incubate_min=args.incubate_min,
+        read_min=args.read_min,
+    )
+    png = render_gantt_png(stages, args.out_dir / "schedule.png")
+    log.info("wrote %s", png)
+    schedule_csv = args.out_dir / "schedule.csv"
+    pd.DataFrame([
+        {"plate": s.plate, "stage": s.stage,
+         "start_min": s.start_min, "end_min": s.end_min}
+        for s in stages
+    ]).to_csv(schedule_csv, index=False)
+    log.info("wrote %s", schedule_csv)
     return 0
 
 
@@ -246,6 +326,10 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_analyze(args)
         if args.cmd == "optimize":
             return _cmd_optimize(args)
+        if args.cmd == "benchling-scaffold":
+            return _cmd_benchling_scaffold(args)
+        if args.cmd == "schedule":
+            return _cmd_schedule(args)
     except ValidationError as e:
         log.error("config validation failed:\n%s", e)
         return 1

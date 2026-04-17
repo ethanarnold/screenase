@@ -140,6 +140,62 @@ def handle_reagent_consumed(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def handle_entry_completed(payload: dict[str, Any]) -> dict[str, Any]:
+    """Handle a Benchling `entry_updated` / `entry_completed` webhook.
+
+    Expected fields (the round-trip results ingestion flow):
+    - `runId`: the original Screenase run id
+    - `entry`: a Benchling Entry payload with a `results` table — rows shape
+       `{run, <coded factor cols>, <response col>}` — parsed via `entry.fields`
+       or `entry.results` depending on how the Entry was populated.
+    - `responseColumn` (default `yield_ug_per_uL`)
+
+    Re-runs the OLS fit and returns an Entry update payload that *writes back*
+    the analysis (top term, R², curvature p) onto the same Entry. A real
+    deployment would PATCH the entry via the SDK.
+    """
+    response_col = payload.get("responseColumn", "yield_ug_per_uL")
+    run_id = payload.get("runId") or "run-unknown"
+    entry = payload.get("entry") or {}
+    rows = (
+        entry.get("results")
+        or entry.get("fields", {}).get("results", {}).get("value")
+        or payload.get("results")
+    )
+    if not rows:
+        raise ValueError("entry payload missing `results` table")
+
+    results = pd.DataFrame(rows)
+    factor_cols = [c for c in results.columns if c.endswith("_coded")]
+    if not factor_cols:
+        raise ValueError("results table has no `_coded` factor columns")
+    fit = fit_model(results, response_col, factor_cols)
+    effects = rank_effects(fit)
+
+    # Shape an Entry update: a PATCH body to the same entryId, with the
+    # analysis written back into structured fields.
+    entry_id = entry.get("entryId") or entry.get("id") or f"entry_{run_id}"
+    update_body = {
+        "entryId": entry_id,
+        "fields": {
+            "runId": {"value": run_id},
+            "topTerm": {"value": effects[0].term if effects else None},
+            "topTerms": {"value": [
+                {"term": e.term, "coef": e.coef, "t": e.t, "p": e.p}
+                for e in effects
+            ]},
+            "rSquared": {"value": float(fit.rsquared)},
+            "dfResid": {"value": int(fit.df_resid)},
+        },
+    }
+    return {
+        "runId": run_id,
+        "entryUpdate": update_body,
+        "topTerm": effects[0].term if effects else None,
+        "rSquared": float(fit.rsquared),
+    }
+
+
 def run_fixture(fixture_path: Path | str, handler: str = "request_created") -> dict[str, Any]:
     """Utility: dispatch a local fixture JSON through the named handler."""
     payload = json.loads(Path(fixture_path).read_text())
@@ -149,4 +205,6 @@ def run_fixture(fixture_path: Path | str, handler: str = "request_created") -> d
         return handle_results_submitted(payload)
     if handler == "reagent_consumed":
         return handle_reagent_consumed(payload)
+    if handler == "entry_completed":
+        return handle_entry_completed(payload)
     raise ValueError(f"unknown handler {handler!r}")

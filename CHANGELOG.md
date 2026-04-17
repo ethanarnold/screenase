@@ -4,6 +4,30 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-04-17
+
+### Added
+
+- **Benchling schema scaffolding (`screenase benchling-scaffold` +
+  `benchling.schemas`):** emits Request / Result / Entry schema JSON files
+  a tenant admin can paste into Benchling's schema builder.
+- **Echo 525 transfer export (`automation.build_echo_transfer_csv`):** one
+  row per reagent × destination well, volumes in nL (Echo convention).
+  CLI: `--export echo` (requires `--plate`).
+- **Opentrons OT-2 protocol export (`automation.build_ot2_protocol`):**
+  emits a `pipette.transfer(...)` stub per pipetting step, ready to paste
+  into the Opentrons app. CLI: `--export ot2` (requires `--plate`).
+- **Wall-clock schedule (`screenase schedule` + `scheduling.plan_schedule`):**
+  Gantt-style PNG + schedule CSV of pipet → incubate → read stages across
+  plates.
+- **Lot-expiry warnings (`scheduling.check_lot_expiry`):** fire on
+  `--export benchling-inventory` when the `--lot-refs` JSON carries
+  `expiryDate` fields — flags expired + soon-to-expire lots in the log.
+- **Round-trip Entry ingestion (`benchling.app.handle_entry_completed` +
+  `fixtures/entry_completed.json`):** parses a completed Benchling Entry's
+  results table, refits OLS, and returns an Entry update payload that
+  writes the analysis (top term, R²) back onto the same Entry.
+
 ## [0.3.0] — 2026-04-17
 
 ### Added
