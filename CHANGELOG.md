@@ -4,6 +4,28 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] — 2026-04-17
+
+### Added
+
+- **PyPI release workflow (`.github/workflows/release.yml`):** tag-triggered
+  trusted-publishing (OIDC) build + upload; cross-checks the tag against
+  `pyproject.toml` to prevent mismatched releases.
+- **Docker image on GHCR.** `Dockerfile` + `.dockerignore`; the same
+  `release.yml` pushes a multi-tag image to `ghcr.io/<repo>` (semver +
+  `latest`). Default CMD runs the Streamlit UI; override to run the CLI
+  or FastAPI server.
+- **Coverage gate at 85%** in CI (`pytest --cov=screenase --cov-fail-under=85`).
+  Current coverage is ~88%.
+- **Property tests for `volumes` + `bench_sheet`:** per-run reagent-sum
+  invariant across 30 Hypothesis-generated configs; HTML-escape property
+  for `<script>…</script>` injection attempts.
+
+### Changed
+
+- Stricter mypy: enabled `check_untyped_defs`, `no_implicit_optional`,
+  `warn_redundant_casts`, `warn_unreachable`.
+
 ## [0.6.0] — 2026-04-17
 
 ### Added

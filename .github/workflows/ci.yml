@@ -27,5 +27,5 @@ jobs:
         run: ruff check src tests streamlit_app.py
       - name: Mypy
         run: mypy --ignore-missing-imports src/screenase
-      - name: Pytest
-        run: pytest -q
+      - name: Pytest with coverage
+        run: pytest --cov=screenase --cov-report=term-missing --cov-fail-under=85 -q
