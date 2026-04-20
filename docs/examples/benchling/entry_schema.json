@@ -1,0 +1,42 @@
+{
+  "schemaId": "sch_screenase_doe_analysis",
+  "schemaType": "entry",
+  "displayName": "Screenase Analysis",
+  "fields": [
+    {
+      "name": "runId",
+      "displayName": "Run ID",
+      "fieldType": "text",
+      "isRequired": true,
+      "isMulti": false
+    },
+    {
+      "name": "topTerm",
+      "displayName": "Top Term",
+      "fieldType": "text",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "topTerms",
+      "displayName": "Top Terms (JSON)",
+      "fieldType": "long_text",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "rSquared",
+      "displayName": "R\u00b2",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "curvatureP",
+      "displayName": "Curvature p-value",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    }
+  ]
+}

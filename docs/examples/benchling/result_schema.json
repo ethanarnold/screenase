@@ -1,0 +1,91 @@
+{
+  "schemaId": "sch_screenase_doe_result",
+  "schemaType": "result",
+  "displayName": "Screenase DoE Result",
+  "fields": [
+    {
+      "name": "runId",
+      "displayName": "Run ID",
+      "fieldType": "text",
+      "isRequired": true,
+      "isMulti": false
+    },
+    {
+      "name": "run",
+      "displayName": "Run",
+      "fieldType": "integer",
+      "isRequired": true,
+      "isMulti": false
+    },
+    {
+      "name": "isCenterPoint",
+      "displayName": "Center Point?",
+      "fieldType": "boolean",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "NTPs_mM_each",
+      "displayName": "NTPs, each (mM)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "NTPs_mM_each_coded",
+      "displayName": "NTPs_mM_each (coded)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "MgCl2_mM",
+      "displayName": "MgCl\u2082 (mM)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "MgCl2_mM_coded",
+      "displayName": "MgCl2_mM (coded)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "T7_uL",
+      "displayName": "T7 (\u00b5L)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "T7_uL_coded",
+      "displayName": "T7_uL (coded)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "PEG8000_pct",
+      "displayName": "PEG8000 (%)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "PEG8000_pct_coded",
+      "displayName": "PEG8000_pct (coded)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "response_ugPerUL",
+      "displayName": "Yield (\u00b5g/\u00b5L)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    }
+  ]
+}

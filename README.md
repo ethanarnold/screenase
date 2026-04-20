@@ -102,6 +102,14 @@ The hosted app wraps the same `screenase` package — two tabs:
 - **Generate screen**: slider-edit factors, get CSV + rendered bench sheet + download buttons.
 - **Analyze results**: upload the coded CSV with your yields filled in, get the Pareto + ranked-effects table.
 
+## Worked examples
+
+Pre-rendered artifacts (bench-sheet PDF, plate map, diagnostic plots, narrated
+analysis report, CCD follow-up, Benchling schema JSON) live in
+[`docs/examples/`](docs/examples/) — browse the look of a real run without
+cloning. See [`docs/examples/README.md`](docs/examples/README.md) for the
+regeneration commands.
+
 ## Benchling integration
 
 `src/screenase/benchling/` shapes Screenase as a Benchling App: a manifest,

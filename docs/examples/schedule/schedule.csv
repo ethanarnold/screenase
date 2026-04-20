@@ -1,0 +1,4 @@
+plate,stage,start_min,end_min
+1,pipet,0.0,19.0
+1,incubate,19.0,139.0
+1,read,139.0,154.0

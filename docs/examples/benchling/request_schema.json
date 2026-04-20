@@ -1,0 +1,49 @@
+{
+  "schemaId": "sch_screenase_doe_request",
+  "schemaType": "request",
+  "displayName": "Screenase DoE Request",
+  "fields": [
+    {
+      "name": "runId",
+      "displayName": "Run ID",
+      "fieldType": "text",
+      "isRequired": true,
+      "isMulti": false
+    },
+    {
+      "name": "configHash",
+      "displayName": "Config Hash",
+      "fieldType": "text",
+      "isRequired": true,
+      "isMulti": false
+    },
+    {
+      "name": "seed",
+      "displayName": "Seed",
+      "fieldType": "integer",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "reactionVolumeUL",
+      "displayName": "Reaction Volume (\u00b5L)",
+      "fieldType": "float",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "centerPoints",
+      "displayName": "Center Points",
+      "fieldType": "integer",
+      "isRequired": false,
+      "isMulti": false
+    },
+    {
+      "name": "factors",
+      "displayName": "Factors (JSON)",
+      "fieldType": "long_text",
+      "isRequired": false,
+      "isMulti": false
+    }
+  ]
+}
