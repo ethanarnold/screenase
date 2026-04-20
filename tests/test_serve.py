@@ -48,3 +48,5 @@ def test_create_app_has_expected_routes() -> None:
     routes = {r.path for r in app.routes}  # type: ignore[attr-defined]
     assert "/health" in routes
     assert "/benchling/request_created" in routes
+    schema = app.openapi()
+    assert "/benchling/request_created" in schema["paths"]

@@ -12,8 +12,6 @@ Benchling integration flow: a real tenant would point its `request_created`
 webhook URL at `https://…/benchling/request_created` on this server.
 """
 
-from __future__ import annotations
-
 import hashlib
 import hmac
 import os
