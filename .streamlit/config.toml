@@ -1,15 +1,14 @@
-# Benchling-inspired palette: lavender / indigo accents, IBM Plex typography.
-# This aligns the demo visually with Benchling's UI so the tool feels native.
+# Benchling palette (verified against a live Benchling tenant, 2026-04-21):
+# sidebar #000db5, heading accent #6e8cfc, buttons #3d65fb. Streamlit exposes
+# one primary color, so we use the button blue as primaryColor and the dark
+# sidebar blue as textColor.
 [theme]
-primaryColor = "#6558f5"
+primaryColor = "#3d65fb"
 backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f5f3ff"
-textColor = "#1f1a3d"
+secondaryBackgroundColor = "#eef2ff"
+textColor = "#000db5"
 font = "sans serif"
 base = "light"
 
 [server]
 headless = true
-
-# Python version for Streamlit Cloud is set via runtime.txt (or the
-# dashboard's "Advanced settings") — not in this file.
