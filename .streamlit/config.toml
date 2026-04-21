@@ -1,12 +1,12 @@
-# Benchling palette (verified against a live Benchling tenant, 2026-04-21):
-# sidebar #000db5, heading accent #6e8cfc, buttons #3d65fb. Streamlit exposes
-# one primary color, so we use the button blue as primaryColor and the dark
-# sidebar blue as textColor.
+# Benchling-inspired: white-dominant, near-black text, a single saturated
+# blue (#3d65fb) reserved for CTAs (download buttons, active tabs, sliders).
+# Streamlit doesn't expose a separate sidebar color, so we don't emulate
+# Benchling's dark nav — we just stop bleeding blue everywhere.
 [theme]
 primaryColor = "#3d65fb"
 backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#eef2ff"
-textColor = "#000db5"
+secondaryBackgroundColor = "#f5f6f8"
+textColor = "#1f2937"
 font = "sans serif"
 base = "light"
 
