@@ -10,7 +10,7 @@ RUN apt-get update \
 COPY pyproject.toml README.md LICENSE /app/
 COPY src /app/src
 COPY examples /app/examples
-COPY streamlit_app.py runtime.txt /app/
+COPY streamlit_app.py /app/
 
 # Install core + ui + serve extras. Benchling SDK stays opt-in.
 RUN pip install --no-cache-dir -e '.[ui,serve]'

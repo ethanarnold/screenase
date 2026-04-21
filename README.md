@@ -1,7 +1,7 @@
 # Screenase — DoE tool for IVT reaction optimization
 
 [![CI](https://github.com/ethanarnold/screenase/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanarnold/screenase/actions/workflows/ci.yml)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://screenase.streamlit.app/)
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-sm.svg)](https://huggingface.co/spaces/ethanarnold/screenase)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Plan a randomized 2^k full-factorial (or central-composite follow-up) DoE
@@ -10,7 +10,7 @@ plate, print a bench-ready pipetting sheet, and analyze the resulting yields —
 all from a single CLI, a Streamlit web app, or a Benchling-App-shaped Python
 subpackage.
 
-> **Live demo:** **[screenase.streamlit.app](https://screenase.streamlit.app/)** — click Generate, download the bench sheet, upload a results CSV to see the Pareto.
+> **Live demo:** **[huggingface.co/spaces/ethanarnold/screenase](https://huggingface.co/spaces/ethanarnold/screenase)** — click Generate, download the bench sheet, upload a results CSV to see the Pareto.
 > `docs/screenshots/cli_demo.gif` shows the generate → bench sheet → analyze loop.
 
 ## Why
@@ -96,7 +96,8 @@ factors:
 
 ## Live demo
 
-Try it in the browser: **[screenase.streamlit.app](https://screenase.streamlit.app/)**.
+Try it in the browser: **[huggingface.co/spaces/ethanarnold/screenase](https://huggingface.co/spaces/ethanarnold/screenase)**
+(direct app URL: [ethanarnold-screenase.hf.space](https://ethanarnold-screenase.hf.space/)).
 The hosted app wraps the same `screenase` package — two tabs:
 
 - **Generate screen**: slider-edit factors, get CSV + rendered bench sheet + download buttons.
