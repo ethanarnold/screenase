@@ -4,6 +4,18 @@ All notable changes to Screenase are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Custom domain.** The live demo now lives at
+  [screenase.com](https://screenase.com). The Hugging Face Space
+  (`ethanarnold/screenase`) is still the host — `screenase.com` is wired up
+  via Cloudflare CNAME flattening at the apex (`@` → `hf.space`, DNS-only)
+  plus HF's PRO custom-domain feature, which provisions TLS. README and
+  tutorial updated; the `huggingface.co/spaces/ethanarnold/screenase` URL
+  still works as a redirect.
+
 ## [0.8.0] — 2026-04-17
 
 ### Added

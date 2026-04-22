@@ -6,7 +6,7 @@ default to, and **how** to plan, run, and analyze a real screen end-to-end
 using Screenase.
 
 If you'd rather click than read, the same material lives in the app's
-**Tutorial** tab: [huggingface.co/spaces/ethanarnold/screenase](https://huggingface.co/spaces/ethanarnold/screenase).
+**Tutorial** tab: [screenase.com](https://screenase.com).
 
 ---
 
@@ -88,7 +88,7 @@ Six steps from blank slate to a bench-ready plan.
 
 ### 1. Configure the screen
 
-Open the app ([live demo](https://huggingface.co/spaces/ethanarnold/screenase)
+Open the app ([live demo](https://screenase.com)
 or `streamlit run streamlit_app.py` locally). In the sidebar:
 
 - **Reaction volume, DNA template, center points, seed** — reasonable
@@ -164,7 +164,7 @@ The **Analyze results** tab takes the filled coded CSV and returns:
 
 ## Worked example, without a bench
 
-1. Open the live demo: [huggingface.co/spaces/ethanarnold/screenase](https://huggingface.co/spaces/ethanarnold/screenase).
+1. Open the live demo: [screenase.com](https://screenase.com).
 2. **Generate screen** tab — the sidebar defaults to the canonical 4-factor
    IVT. Click through the design and bench sheet to see what gets produced.
 3. **Analyze results** tab → **Demo results** → you'll see exactly the
