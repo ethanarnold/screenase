@@ -33,6 +33,10 @@ jobs:
           cp streamlit_app.py build/app.py
           cp .streamlit/config.toml build/.streamlit/config.toml
           cp examples/results_simulated.csv build/examples/results_simulated.csv
+          # Pin the screenase requirement to this commit so the HF Space
+          # Docker build busts its pip-install layer cache on every deploy.
+          sed -i "s|@main|@${GITHUB_SHA}|" build/requirements.txt
+          cat build/requirements.txt
           ls -la build/
 
       - name: Push to Hugging Face Space
