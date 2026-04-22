@@ -7,6 +7,7 @@ subdirectory; regenerate locally with `pip install -e '.[dev,ui,serve,pdf]'`.
 
 | Folder | Shows | How it was generated |
 | --- | --- | --- |
+| [`tutorial/`](tutorial/) | **OFAT vs DoE** — numerical comparison on a realistic IVT surface, answering the "why DoE?" question end-to-end | `jupyter nbconvert --execute tutorial.ipynb` (see [`../tutorial.md`](../tutorial.md) for the prose version) |
 | [`flat/`](flat/) | 96-well plate layout, HTML bench sheet, **branded PDF bench sheet**, plate-map PNG | `screenase generate --config examples/config.yaml --out-dir docs/examples/flat --plate 96 --plate-layout column-major --pdf` |
 | [`ccd/`](ccd/) | Central-composite follow-up design (factorial + axial + center) | `screenase generate --config examples/config.yaml --out-dir docs/examples/ccd --design ccd --alpha face` |
 | [`analyze/`](analyze/) | Full stats pack: narrated `analysis_report.md`, Pareto, half-normal, residuals, 2-factor surface | `screenase analyze examples/results_simulated.csv --response yield_ug_per_uL --out-dir docs/examples/analyze` |
@@ -17,6 +18,10 @@ subdirectory; regenerate locally with `pip install -e '.[dev,ui,serve,pdf]'`.
 
 Highlights worth clicking:
 
+- [`tutorial/tutorial.ipynb`](tutorial/tutorial.ipynb) — the "why DoE?"
+  notebook: simulates OFAT and DoE on the same IVT truth surface, shows
+  DoE beating OFAT in every one of 50 seeds, and visualizes the
+  NTPs × MgCl₂ interaction that OFAT can't see.
 - [`flat/ivt_bench_sheet.pdf`](flat/ivt_bench_sheet.pdf) — branded,
   print-ready pipetting sheet with embedded plate map.
 - [`flat/plate_map.png`](flat/plate_map.png) — color-coded 96-well layout.

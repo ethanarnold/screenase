@@ -11,6 +11,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -30,6 +31,7 @@ from screenase.design import build_ccd, build_design, build_pb
 from screenase.narrate import narrate_analysis
 from screenase.plate import assign_plate, render_plate_map_html
 from screenase.share import decode_config, encode_config
+from screenase.tutorial import run_ofat_vs_doe, truth_response
 from screenase.volumes import compute_volumes, validate_volumes
 
 REPO_URL = "https://github.com/ethanarnold/screenase"
@@ -78,12 +80,12 @@ _IFRAME_SAFETY_CSS = """
 }
 
 .sn-label-with-info {
-  display: flex; align-items: center; gap: 0.3rem;
   font-size: 0.875rem; line-height: 1.6; margin-bottom: 0.25rem;
 }
 .sn-info-icon {
   position: relative; cursor: help; color: #888;
-  display: inline-flex; align-items: center; line-height: 1;
+  display: inline-flex; align-items: center; vertical-align: middle;
+  margin-left: 0.15rem; line-height: 1;
 }
 .sn-info-icon::after {
   content: attr(data-tooltip);
@@ -765,6 +767,252 @@ def _render_pareto_png(effects, df_resid: int) -> bytes:
     return buf.getvalue()
 
 
+def _render_tutorial_tab(default_cfg: ReactionConfig) -> None:
+    st.markdown(
+        "### New to DoE? Start here.\n\n"
+        "Spoiler alert: It is way faster than optimizing one-factor-at-a-time!\n\n"
+        "Two short sections: **Why DoE?** shows, numerically, what "
+        "one-factor-at-a-time (OFAT) screening costs you on a realistic IVT "
+        "surface. **Your first screen** walks you through the tool end-to-end."
+    )
+
+    why, how = st.tabs(["Why DoE?", "Your first screen"])
+
+    with why:
+        st.markdown(
+            "Imagine a 4-factor IVT screen — NTPs, MgCl₂, T7, PEG8000 — "
+            "with a realistic catch: **MgCl₂'s best setpoint depends on NTPs**. "
+            "At low NTPs, more Mg²⁺ helps. At high NTPs, *even more* Mg²⁺ helps "
+            "*disproportionately*. That's a two-factor interaction, and it's "
+            "invisible to OFAT by construction.\n\n"
+            "Below, we simulate the same ground-truth IVT under two plans:\n\n"
+            "- **OFAT**: 3 center replicates + high/low spoke at each factor (11 runs). "
+            "Pick each factor's best level independently.\n"
+            "- **DoE**: 2⁴ full factorial + 3 center replicates (19 runs). "
+            "Fit main effects + 2-factor interactions; search for the optimum.\n"
+        )
+
+        st.markdown(
+            '<div class="sn-label-with-info">'
+            '<span>Simulation seed</span>'
+            '<span class="sn-info-icon" tabindex="0" '
+            'data-tooltip="Different seeds give different noise draws — the '
+            'conclusion is robust.">'
+            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" '
+            'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            '<circle cx="12" cy="12" r="10"/>'
+            '<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>'
+            '<line x1="12" y1="17" x2="12.01" y2="17"/>'
+            '</svg></span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        seed = st.slider(
+            "Simulation seed",
+            min_value=0, max_value=50, value=7, step=1,
+            key="tutorial_seed",
+            label_visibility="collapsed",
+        )
+
+        report = run_ofat_vs_doe(default_cfg, seed=seed)
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric(
+            "OFAT yield at its picked setpoint",
+            f"{report.ofat.true_yield_at_optimum:.2f} µg/µL",
+            help=f"{report.ofat.n_runs} runs · main effects only",
+        )
+        c2.metric(
+            "DoE yield at its picked setpoint",
+            f"{report.doe.true_yield_at_optimum:.2f} µg/µL",
+            f"{report.yield_gap():+.2f} vs OFAT",
+            help=f"{report.doe.n_runs} runs · main + 2-factor interactions",
+        )
+        c3.metric(
+            "True best achievable yield",
+            f"{report.true_best_yield:.2f} µg/µL",
+            help="Noise-free maximum over the 2ᵏ corners.",
+        )
+
+        factor_names = [f.name for f in default_cfg.factors]
+        picks_df = pd.DataFrame({
+            "Factor": factor_names,
+            "OFAT pick (coded)": [
+                report.ofat.predicted_optimum_coded[n] for n in factor_names
+            ],
+            "DoE pick (coded)": [
+                report.doe.predicted_optimum_coded[n] for n in factor_names
+            ],
+            "True best (coded)": [
+                report.true_best_coded[n] for n in factor_names
+            ],
+        })
+        st.markdown("##### Where each strategy lands")
+        st.dataframe(
+            picks_df, hide_index=True, width="stretch",
+            column_config={
+                c: st.column_config.NumberColumn(c, format="%+.2f")
+                for c in picks_df.columns if c != "Factor"
+            },
+        )
+
+        mismatched = [
+            n for n in factor_names
+            if abs(report.ofat.predicted_optimum_coded[n]
+                   - report.true_best_coded[n]) > 0.5
+        ]
+        if mismatched:
+            st.warning(
+                f"**OFAT picks the wrong level on: {', '.join(mismatched)}.** "
+                "That's because its rule ('hold everything at center and "
+                "sweep one factor') can't see that MgCl₂ behaves differently "
+                "when NTPs is high vs low. DoE sees it because every "
+                "combination of ±1 is in the plan.",
+                icon=":material/warning:",
+            )
+
+        if report.doe.caught_interactions:
+            caught = ", ".join(
+                f"`{t.replace('_coded', '')}`"
+                for t in report.doe.caught_interactions
+            )
+            st.success(
+                f"**DoE flagged {len(report.doe.caught_interactions)} "
+                f"interaction(s) at α=0.05:** {caught}. OFAT can't even "
+                "estimate these — the math literally doesn't work without "
+                "pairwise variation in the design.",
+                icon=":material/check_circle:",
+            )
+
+        st.markdown("##### Truth surface — NTPs × MgCl₂ slice")
+        st.caption(
+            "The ground-truth yield at every combination of NTPs and MgCl₂ "
+            "(other factors held at center). The dot is where OFAT lands; "
+            "the star is DoE's pick."
+        )
+        st.pyplot(_truth_heatmap_fig(report, factor_names), clear_figure=True)
+
+        st.markdown("##### The takeaway")
+        st.markdown(
+            "DoE uses more runs than OFAT's minimal plan, but it finds "
+            f"**{report.yield_gap():+.2f} µg/µL more yield** because it "
+            "measures the interaction OFAT can't even see. In a real lab, "
+            "that's the difference between shipping a 14 µg/µL IVT and a "
+            "12 µg/µL one — same reagents, same day, just a better plan."
+        )
+
+    with how:
+        st.markdown(
+            "Here's the shortest path from blank slate to a bench-ready plan:"
+        )
+
+        st.markdown(
+            "**1. Configure the screen in the sidebar.** "
+            "The default is a 4-factor IVT (NTPs, MgCl₂, T7, PEG8000). "
+            "For each reagent, set the high and low points to the highest "
+            "and lowest amounts, respectively, that you'd still expect to "
+            "give a non-zero yield — bracket the active range so the effect "
+            "is big enough to see above noise without killing the corners. "
+            "Stay within what your stocks and pipettes can actually hit. "
+            "Center points give you a noise estimate — keep 3 unless you "
+            "know why."
+        )
+        st.markdown(
+            "**2. Pick a design type.** "
+            "Start with **full factorial** (2ᵏ + centers) for k ≤ 5 factors. "
+            "For k > 5 factors, switch to **Plackett-Burman** — 12 runs "
+            "catches main effects across up to 11 factors. After you have "
+            "a screen in hand and see curvature in the center-point test, "
+            "come back and run a **CCD** follow-up to characterize it."
+        )
+        st.markdown(
+            "**3. Assign a plate layout.** "
+            "If you'll run in a 96- or 384-well plate, pick a layout in "
+            "the sidebar. Column-major is the usual default; randomized "
+            "breaks up position-dependent systematic error (edge effects, "
+            "incubator gradients)."
+        )
+        st.markdown(
+            "**4. Generate and download.** "
+            "The **Generate** tab shows your randomized run table, a "
+            "printable HTML bench sheet with per-run pipetting volumes, "
+            "and a plate map. Download the **coded CSV** — that's the one "
+            "you'll fill in with yields."
+        )
+        st.markdown(
+            "**5. Run the screen at the bench.** "
+            "Work down the bench sheet row by row; the volumes are already "
+            "computed and the plate map tells you which well is which. "
+            "Record your yield (or whatever response you're optimizing) "
+            "in the empty response column of the coded CSV."
+        )
+        st.markdown(
+            "**6. Upload the filled CSV to the Analyze tab.** "
+            "You'll get a Pareto of standardized effects, an OLS fit, "
+            "ranked significances, a response surface, and a desirability "
+            "optimum. If curvature is significant, Screenase will "
+            "auto-suggest a CCD follow-up."
+        )
+
+        st.divider()
+        st.markdown("##### Try the demo end-to-end without a bench")
+        st.markdown(
+            "1. Click **Generate screen** above.\n"
+            "2. Download the **Coded CSV**.\n"
+            "3. Click **Analyze results** and pick **Demo results** — "
+            "that's a pre-filled version of the same screen.\n"
+            "4. Look for the Pareto bars that cross the red significance line, "
+            "read the plain-English summary, and check the CCD recommendation.\n"
+        )
+        st.info(
+            "The whole loop — plan, simulate, analyze — takes about "
+            "90 seconds. You'll see exactly what a real DoE report looks like, "
+            "generated from this same codebase.",
+            icon=":material/lightbulb:",
+        )
+
+
+def _truth_heatmap_fig(report, factor_names: list[str]):
+    """2D slice of the truth surface over (NTPs, MgCl2), others at 0."""
+    from matplotlib.figure import Figure
+
+    grid = np.linspace(-1.0, 1.0, 41)
+    X, Y = np.meshgrid(grid, grid)
+    coded = pd.DataFrame({
+        factor_names[0]: X.ravel(),
+        factor_names[1]: Y.ravel(),
+        factor_names[2]: 0.0,
+        factor_names[3]: 0.0,
+    })
+    Z = truth_response(coded, sigma=0.0).reshape(X.shape)
+
+    fig = Figure(figsize=(6.5, 4.5))
+    ax = fig.subplots()
+    cs = ax.contourf(X, Y, Z, levels=16, cmap="viridis")
+    fig.colorbar(cs, ax=ax, label="yield (µg/µL)")
+    ax.set_xlabel(f"{factor_names[0]} (coded)")
+    ax.set_ylabel(f"{factor_names[1]} (coded)")
+
+    # OFAT pick
+    ax.plot(
+        report.ofat.predicted_optimum_coded[factor_names[0]],
+        report.ofat.predicted_optimum_coded[factor_names[1]],
+        marker="o", markersize=14, markerfacecolor="#c05454",
+        markeredgecolor="white", markeredgewidth=2, label="OFAT pick",
+    )
+    # DoE pick
+    ax.plot(
+        report.doe.predicted_optimum_coded[factor_names[0]],
+        report.doe.predicted_optimum_coded[factor_names[1]],
+        marker="*", markersize=20, markerfacecolor="#f5d742",
+        markeredgecolor="black", markeredgewidth=1.2, label="DoE pick",
+    )
+    ax.legend(loc="lower left", frameon=True, facecolor="white")
+    ax.set_title("Truth surface (other factors at center)")
+    return fig
+
+
 def _render_about_tab() -> None:
     st.markdown(
         f"""
@@ -814,7 +1062,7 @@ def main() -> None:
         st.title("Screenase")
         st.caption(
             "[Design-of-Experiments](https://www.mathworks.com/help/stats/design-of-experiments.html)"
-            " planner for in-vitro transcription to eliminate redundancy and speed up your science."
+            " planner to catalyze your IVT screens."
         )
     with header_r:
         st.markdown(
@@ -828,13 +1076,15 @@ def main() -> None:
     starting_cfg = _config_from_url() or build_default_config()
     cfg, min_pipet_uL, opts = _sidebar(starting_cfg)
 
-    tab_gen, tab_analyze, tab_about = st.tabs([
-        "Generate screen", "Analyze results", "About",
+    tab_gen, tab_analyze, tab_tutorial, tab_about = st.tabs([
+        "Generate screen", "Analyze results", "Tutorial", "About",
     ])
     with tab_gen:
         _render_generate_tab(cfg, min_pipet_uL, opts)
     with tab_analyze:
         _render_analyze_tab()
+    with tab_tutorial:
+        _render_tutorial_tab(starting_cfg)
     with tab_about:
         _render_about_tab()
 
