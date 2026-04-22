@@ -1,14 +1,31 @@
-# Benchling-inspired: white-dominant, near-black text, a single saturated
-# blue (#3d65fb) reserved for CTAs (download buttons, active tabs, sliders).
-# Streamlit doesn't expose a separate sidebar color, so we don't emulate
-# Benchling's dark nav — we just stop bleeding blue everywhere.
+# Benchling-inspired light theme (white-dominant, CTA-blue as the only
+# accent) paired with a pure-black dark theme. Streamlit matches the user's
+# browser preference on first load and exposes a light/dark switch in the
+# settings menu (three-dot → Settings → Choose app theme).
+#
+# `dataframeHeaderBackgroundColor` is what finally makes st.dataframe /
+# st.data_editor render with dark headers — glide-data-grid reads Streamlit's
+# theme config at page load and won't honor runtime CSS variable flips.
+
 [theme]
+font = "sans serif"
+base = "light"
+
+[theme.light]
 primaryColor = "#3d65fb"
 backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f5f6f8"
 textColor = "#1f2937"
-font = "sans serif"
-base = "light"
+borderColor = "#e5e7eb"
+
+[theme.dark]
+primaryColor = "#3d65fb"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#0a0a0a"
+textColor = "#ffffff"
+borderColor = "#2a2a2a"
+linkColor = "#7aa0ff"
+dataframeHeaderBackgroundColor = "#0a0a0a"
 
 [server]
 headless = true

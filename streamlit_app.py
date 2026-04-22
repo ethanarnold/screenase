@@ -38,6 +38,75 @@ DEMO_RESULTS_PATH = Path(__file__).parent / "examples" / "results_simulated.csv"
 POS_COLOR = "#4a6fa5"
 NEG_COLOR = "#c05454"
 
+# Streamlit's native dual-theme support (`.streamlit/config.toml` with
+# [theme.light] + [theme.dark]) drives dark mode — the user toggles via the
+# three-dot menu → Settings → Choose app theme. glide-data-grid reads that
+# config at page load, which is the only way to get dark dataframes.
+#
+# The only CSS we still inject ourselves is a white backing under iframes:
+# the plate-map HTML has no body bg of its own, so on a dark Streamlit page
+# its light-gray cell borders would render against a dark frame.
+_IFRAME_SAFETY_CSS = """
+<style>
+.stApp iframe { background: #ffffff !important; }
+[data-testid="stDeployButton"] { display: none !important; }
+.stApp [data-testid="stMainBlockContainer"] { padding-top: 2rem; }
+
+/* Swap Streamlit's default sidebar toggle (a Material Symbols ligature
+   `keyboard_double_arrow_left/right` that renders as << / >>) for
+   sidekickicons' sidebar-left outline icon — https://sidekickicons.com/.
+   We hide the ligature text via font-size:0 on the icon span, then paint
+   the sidekickicons glyph on a ::before using currentColor so it inherits
+   the span's theme-driven color. */
+[data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"],
+[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"] {
+  font-size: 0 !important;
+  line-height: 0 !important;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-block;
+  position: relative;
+}
+[data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"]::before,
+[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M9 4.5v15M4.125 19.5h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z'/></svg>") no-repeat center / contain;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M9 4.5v15M4.125 19.5h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z'/></svg>") no-repeat center / contain;
+}
+
+.sn-label-with-info {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.875rem; line-height: 1.6; margin-bottom: 0.25rem;
+}
+.sn-info-icon {
+  position: relative; cursor: help; color: #888;
+  display: inline-flex; align-items: center; line-height: 1;
+}
+.sn-info-icon::after {
+  content: attr(data-tooltip);
+  position: absolute; bottom: calc(100% + 6px);
+  left: 50%; transform: translateX(-50%);
+  background: #262730; color: #fafafa;
+  padding: 0.4rem 0.6rem; border-radius: 0.3rem;
+  font-size: 0.78rem; font-weight: 400;
+  white-space: normal; width: max-content; max-width: 14rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  opacity: 0; pointer-events: none; transition: opacity 120ms;
+  z-index: 1000;
+}
+.sn-info-icon:hover::after,
+.sn-info-icon:focus::after { opacity: 1; }
+</style>
+"""
+
+
+def _inject_safety_css() -> None:
+    """Inject the minimal CSS that's not covered by Streamlit's theme config."""
+    st.markdown(_IFRAME_SAFETY_CSS, unsafe_allow_html=True)
+
 
 def _config_from_url() -> ReactionConfig | None:
     """If ?cfg=… is present in the URL, decode it into a ReactionConfig."""
@@ -85,7 +154,7 @@ def build_default_config() -> ReactionConfig:
 
 def generate_from_ui(
     cfg: ReactionConfig,
-    min_pipet_uL: float = 0.5,
+    min_pipet_uL: float = 0.1,
     *,
     design_kind: str = "full",
     alpha: str = "face",
@@ -151,8 +220,11 @@ def generate_from_ui(
 # ---------- sidebar ----------
 
 def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
+    if "expand_all" not in st.session_state:
+        st.session_state["expand_all"] = False
+
     with st.sidebar:
-        st.markdown("### Reaction")
+        st.markdown("### Reaction Parameters")
         c1, c2 = st.columns(2)
         vol = c1.number_input(
             "Volume (µL)", value=float(default_cfg.reaction_volume_uL),
@@ -167,76 +239,104 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
             "Center pts", min_value=0, max_value=10,
             value=int(default_cfg.center_points), step=1, key="cps",
         )
-        seed = c2.number_input(
-            "Seed", value=int(default_cfg.seed), step=1, key="seed",
-        )
-
-        st.markdown("### Design")
-        design_kind = st.radio(
-            "Type",
-            options=["full", "ccd", "pb"],
-            index=0,
-            format_func=lambda k: {
-                "full": "Full factorial (2ᵏ + centers)",
-                "ccd": "Central-composite (CCD follow-up)",
-                "pb": "Plackett-Burman (screening, k > 5)",
-            }[k],
-            key="design_kind",
-            horizontal=False,
-        )
-        alpha = "face"
-        if design_kind == "ccd":
-            alpha = st.select_slider(
-                "Axial α",
-                options=["face", "rotatable"],
-                value="face",
-                help=(
-                    "`face` (α=1) stays within low/high; `rotatable` extends "
-                    "axial setpoints beyond the range — use only if your "
-                    "stocks allow the wider span."
-                ),
-                key="ccd_alpha",
+        with c2:
+            st.markdown(
+                '<div class="sn-label-with-info">'
+                '<span>Seed</span>'
+                '<span class="sn-info-icon" tabindex="0" '
+                'data-tooltip="Randomizes run order. Same seed yields identical output.">'
+                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" '
+                'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                '<circle cx="12" cy="12" r="10"/>'
+                '<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>'
+                '<line x1="12" y1="17" x2="12.01" y2="17"/>'
+                '</svg></span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            seed = st.number_input(
+                "Seed", value=int(default_cfg.seed), step=1, key="seed",
+                label_visibility="collapsed",
             )
 
-        st.markdown("### Plate layout")
-        plate_choice = st.radio(
-            "Plate",
-            options=["none", "96", "384"],
-            horizontal=True,
-            index=0,
-            key="plate_choice",
-        )
-        plate_layout = "column-major"
-        if plate_choice != "none":
-            plate_layout = st.radio(
-                "Fill order",
-                options=["column-major", "row-major", "randomized"],
+        ec1, ec2 = st.columns(2)
+        if ec1.button("Expand all", width="stretch", key="expand_all_btn"):
+            st.session_state["expand_all"] = True
+            st.rerun()
+        if ec2.button("Collapse all", width="stretch", key="collapse_all_btn"):
+            st.session_state["expand_all"] = False
+            st.rerun()
+
+        expanded = st.session_state["expand_all"]
+
+        with st.expander("Design Type", expanded=expanded):
+            design_kind = st.radio(
+                "Design type",
+                options=["full", "ccd", "pb"],
                 index=0,
-                horizontal=True,
-                key="plate_layout",
+                format_func=lambda k: {
+                    "full": "Full factorial (2ᵏ + centers)",
+                    "ccd": "Central-composite (CCD follow-up)",
+                    "pb": "Plackett-Burman (screening, k > 5)",
+                }[k],
+                key="design_kind",
+                horizontal=False,
+                label_visibility="collapsed",
             )
+            alpha = "face"
+            if design_kind == "ccd":
+                alpha = st.select_slider(
+                    "Axial α",
+                    options=["face", "rotatable"],
+                    value="face",
+                    help=(
+                        "`face` (α=1) stays within low/high; `rotatable` extends "
+                        "axial setpoints beyond the range — use only if your "
+                        "stocks allow the wider span."
+                    ),
+                    key="ccd_alpha",
+                )
 
-        st.markdown("### Factors")
-        st.caption("Edit low / high setpoints.")
-        factor_rows = [
-            {
-                "factor": f.display or f.name,
-                "low": float(f.low),
-                "high": float(f.high),
-            }
-            for f in default_cfg.factors
-        ]
-        edited = st.data_editor(
-            pd.DataFrame(factor_rows),
-            hide_index=True,
-            disabled=["factor"],
-            key="factors_editor",
-            column_config={
-                "factor": st.column_config.TextColumn("Factor", width="medium"),
-                "low": st.column_config.NumberColumn("Low", format="%.3g"),
-                "high": st.column_config.NumberColumn("High", format="%.3g"),
-            },
-        )
+        with st.expander("Plate Layout", expanded=expanded):
+            plate_choice = st.radio(
+                "Plate",
+                options=["none", "96", "384"],
+                horizontal=True,
+                index=0,
+                key="plate_choice",
+                label_visibility="collapsed",
+            )
+            plate_layout = "column-major"
+            if plate_choice != "none":
+                plate_layout = st.radio(
+                    "Fill order",
+                    options=["column-major", "row-major", "randomized"],
+                    index=0,
+                    horizontal=True,
+                    key="plate_layout",
+                )
+
+        with st.expander("High / Low Setpoints", expanded=expanded):
+            factor_rows = [
+                {
+                    "factor": f.display or f.name,
+                    "low": float(f.low),
+                    "high": float(f.high),
+                }
+                for f in default_cfg.factors
+            ]
+            edited = st.data_editor(
+                pd.DataFrame(factor_rows),
+                hide_index=True,
+                disabled=["factor"],
+                key="factors_editor",
+                column_config={
+                    "factor": st.column_config.TextColumn("Factor", width="medium"),
+                    "low": st.column_config.NumberColumn("Low", format="%.3g"),
+                    "high": st.column_config.NumberColumn("High", format="%.3g"),
+                },
+            )
         new_factors: list[Factor] = []
         for orig, row in zip(default_cfg.factors, edited.itertuples(index=False),
                              strict=True):
@@ -244,7 +344,7 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
                 "low": float(row.low), "high": float(row.high),
             }))
 
-        with st.expander("Stock concentrations"):
+        with st.expander("Stock concentrations", expanded=expanded):
             stock_rows = [
                 {
                     "key": k,
@@ -273,7 +373,7 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
                 for row in stock_edit.itertuples(index=False)
             }
 
-        with st.expander("Fixed reagents"):
+        with st.expander("Fixed reagents", expanded=expanded):
             st.caption("Reagents with a constant volume per run (not swept).")
             fixed_rows = [
                 {"reagent": k, "volume_uL": float(v)}
@@ -296,10 +396,10 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
                 for row in fixed_edit.itertuples(index=False)
             }
 
-        with st.expander("Advanced"):
+        with st.expander("Advanced", expanded=expanded):
             min_pipet = st.number_input(
                 "Min pipetting volume (µL)",
-                value=0.5, min_value=0.0, step=0.1, key="min_pipet",
+                value=0.1, min_value=0.0, step=0.1, key="min_pipet",
                 help="Volumes below this threshold emit a warning on the bench sheet.",
             )
 
@@ -387,22 +487,23 @@ def _render_generate_tab(
                 "sees them at the bench."
             )
 
-    left, right = st.columns([1, 1], gap="medium")
-    with left:
-        st.markdown("#### Design")
-        display_cols = [f.name for f in cfg.factors] + ["is_center"]
-        st.dataframe(
-            design[display_cols],
-            height=540,
-            column_config={
-                "is_center": st.column_config.CheckboxColumn(
-                    "center?", help="Center-point replicate",
-                ),
-            },
-        )
-    with right:
-        st.markdown("#### Bench sheet preview")
-        st.iframe(art["html"], height=540)
+    st.markdown("#### Design")
+    display_cols = [f.name for f in cfg.factors] + ["is_center"]
+    st.dataframe(
+        design[display_cols],
+        height=540,
+        width="stretch",
+        column_config={
+            "is_center": st.column_config.CheckboxColumn(
+                "center?", help="Center-point replicate",
+            ),
+        },
+    )
+
+    with st.expander("Bench sheet preview", expanded=False):
+        # Render inside a white-background iframe so the template's black
+        # text stays legible regardless of the surrounding theme.
+        st.components.v1.html(art["html"], height=540, scrolling=True)
 
     if art.get("plate_df") is not None:
         st.markdown("#### Plate layout")
@@ -706,6 +807,7 @@ def main() -> None:
             "About": "Screenase — DoE planner for in-vitro transcription.",
         },
     )
+    _inject_safety_css()
 
     header_l, header_r = st.columns([3, 1])
     with header_l:
