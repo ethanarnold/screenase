@@ -1,0 +1,1 @@
+screenase[ui,pdf] @ git+https://github.com/ethanarnold/screenase.git@main

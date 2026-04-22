@@ -1,0 +1,61 @@
+name: Deploy HF Space
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "streamlit_app.py"
+      - ".streamlit/config.toml"
+      - "examples/results_simulated.csv"
+      - "deploy/hf-space/**"
+      - ".github/workflows/deploy-hf-space.yml"
+      # Also redeploy on package source changes so the Space picks up
+      # the new `screenase` wheel (requirements pins `@main`).
+      - "src/screenase/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hf-space
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose Space payload
+        run: |
+          set -euo pipefail
+          mkdir -p build/.streamlit build/examples
+          cp -r deploy/hf-space/. build/
+          cp streamlit_app.py build/app.py
+          cp .streamlit/config.toml build/.streamlit/config.toml
+          cp examples/results_simulated.csv build/examples/results_simulated.csv
+          ls -la build/
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.hf_deploy }}
+          HF_USER: ethanarnold
+          HF_SPACE: screenase
+        run: |
+          set -euo pipefail
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "HF_TOKEN secret is not set on this repo." >&2
+            exit 1
+          fi
+          git clone "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${HF_SPACE}" space
+          cd space
+          git config user.email "deploy@github.actions"
+          git config user.name "GitHub Actions"
+          # Sync: replace working tree with composed payload, keep .git.
+          rsync -a --delete --exclude='.git' ../build/ ./
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+            exit 0
+          fi
+          git commit -m "Sync from screenase@${GITHUB_SHA}"
+          git push

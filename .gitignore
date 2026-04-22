@@ -14,7 +14,7 @@ venv/
 .DS_Store
 out/
 _legacy/
-hf-space/
+/hf-space/
 
 # Dev-internal planning + AI-assistant context. Keep local, don't publish.
 CLAUDE.md
