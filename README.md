@@ -145,6 +145,25 @@ for the subpackage structure.
 Why 2⁴ + 3 center points? Why `(f1 + f2 + f3 + f4)**2`? Why randomize? See
 [`docs/design_rationale.md`](docs/design_rationale.md).
 
+## Distribution surfaces
+
+The same screenase planning + analysis logic is wrapped for three additional
+deployment targets, each in its own repo:
+
+- **[screenase-latch](https://github.com/ethanarnold/screenase-latch)** —
+  Latch workflow (`@workflow screenase_doe`). One `latch register .` away from
+  a callable workflow on the Latch platform.
+- **[screenase-benchling-app](https://github.com/ethanarnold/screenase-benchling-app)** —
+  Benchling App (manifest, four webhook handlers, FastAPI server with HMAC).
+  Extracted from `src/screenase/benchling/`, upgraded to the explicit-subscriptions
+  manifest format.
+- **[screenase-foundry](https://github.com/ethanarnold/screenase-foundry)** —
+  Palantir Foundry ontology + OSDK React app + ready-to-PR
+  [aip-community-registry](https://github.com/palantir/aip-community-registry)
+  bundle.
+
+Each is a thin wrapper — the heavy lifting stays in this package.
+
 ## Dev
 
 ```bash
