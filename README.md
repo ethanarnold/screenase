@@ -1,6 +1,7 @@
 # Screenase — DoE tool for IVT reaction optimization
 
 [![CI](https://github.com/ethanarnold/screenase/actions/workflows/ci.yml/badge.svg)](https://github.com/ethanarnold/screenase/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/screenase.svg)](https://pypi.org/project/screenase/)
 [![Live demo](https://img.shields.io/badge/demo-screenase.com-5E35B1?logo=huggingface&logoColor=white)](https://screenase.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -10,8 +11,10 @@ plate, print a bench-ready pipetting sheet, and analyze the resulting yields —
 all from a single CLI, a Streamlit web app, or a Benchling-App-shaped Python
 subpackage.
 
+**Distribution surfaces:** [screenase-latch](https://github.com/ethanarnold/screenase-latch) · [screenase-benchling-app](https://github.com/ethanarnold/screenase-benchling-app) · [screenase-foundry](https://github.com/ethanarnold/screenase-foundry)
+**Built by** Ethan Arnold ([emailtoethan@gmail.com](mailto:emailtoethan@gmail.com))
+
 > **Live demo:** **[screenase.com](https://screenase.com)** — click Generate, download the bench sheet, upload a results CSV to see the Pareto.
-> `docs/screenshots/cli_demo.gif` shows the generate → bench sheet → analyze loop.
 
 ## Why
 
