@@ -305,7 +305,7 @@ def _sidebar(default_cfg: ReactionConfig) -> tuple[ReactionConfig, float, dict]:
                 "Plate",
                 options=["none", "96", "384"],
                 horizontal=True,
-                index=0,
+                index=1,
                 key="plate_choice",
                 label_visibility="collapsed",
             )
@@ -509,11 +509,16 @@ def _render_generate_tab(
 
     if art.get("plate_df") is not None:
         st.markdown("#### Plate layout")
+        n_plates = int(art["plate_df"]["plate"].max())
         st.caption(
             f"{opts['plate']}-well plate · {opts['plate_layout']} · "
-            f"{int(art['plate_df']['plate'].max())} plate(s)"
+            f"{n_plates} plate(s)"
         )
-        st.components.v1.html(art["plate_map_html"], height=420, scrolling=True)
+        rows_per_plate = 8 if opts["plate"] == "96" else 16
+        plate_map_height = n_plates * (40 + rows_per_plate * 27) + 20
+        st.components.v1.html(
+            art["plate_map_html"], height=plate_map_height, scrolling=True,
+        )
 
     if art.get("consumption"):
         with st.expander("Inventory consumption (Benchling-shaped)", expanded=False):
