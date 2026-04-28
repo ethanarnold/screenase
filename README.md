@@ -5,23 +5,27 @@
 [![Live demo](https://img.shields.io/badge/demo-screenase.com-5E35B1?logo=huggingface&logoColor=white)](https://screenase.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Plan a randomized 2^k full-factorial (or central-composite follow-up) DoE
-screen for in-vitro transcription reactions, assign wells on a 96-/384-well
-plate, print a bench-ready pipetting sheet, and analyze the resulting yields —
-all from a single CLI, a Streamlit web app, or a Benchling-App-shaped Python
-subpackage.
+Optimizing reactions one-variable-at-a-time is slow and costly. Design of
+Experiments (DoE) is the statistical alternative. You do fewer runs and get more
+information per run. I wanted to use DoE for my own experiments, but found that no DoE software existed that was **free, fast,
+and tailor-made for biochemists**. That's why I built **Screenase**.
 
-**Distribution surfaces:** [screenase-latch](https://github.com/ethanarnold/screenase-latch) · [screenase-benchling-app](https://github.com/ethanarnold/screenase-benchling-app) · [screenase-foundry](https://github.com/ethanarnold/screenase-foundry)
+Screenase is a website that designs DoE screens for in-vitro transcription
+reactions, builds bench-ready pipetting sheets, and analyzes the resulting
+yields. Under the hood it generates 2ᵏ full-factorial designs (or
+central-composite follow-ups), lays runs out on 96-/384-well plates, and runs
+OLS + Pareto analysis on the returned data.
+
+**Distribution surfaces:** [Streamlit web app](https://screenase.com) · [screenase-latch](https://github.com/ethanarnold/screenase-latch) · [screenase-benchling-app](https://github.com/ethanarnold/screenase-benchling-app) · [screenase-foundry](https://github.com/ethanarnold/screenase-foundry)
 **Built by** Ethan Arnold ([emailtoethan@gmail.com](mailto:emailtoethan@gmail.com))
 
-> **Live demo:** **[screenase.com](https://screenase.com)** — click Generate, download the bench sheet, upload a results CSV to see the Pareto.
+> **Live demo:** **[screenase.com](https://screenase.com)** — set your parameters, click Generate, download the bench sheet, upload a results CSV for analysis.
 
 ## Why
 
-Scientists optimizing in-vitro transcription yields typically plan screens by
-hand in a spreadsheet: pick factors, pick levels, randomize runs, compute
-pipetting volumes per well, print, pipette, measure, eyeball the effects.
-Each step is manual, every step is error-prone, and the bench sheet is usually
+Even DoE done by hand in a spreadsheet stays painful: pick factors and levels,
+randomize runs, compute pipetting volumes per well, print, pipette, measure,
+eyeball the effects. Every step is error-prone, and the bench sheet is usually
 a one-off file that doesn't round-trip back into analysis.
 
 Screenase automates the whole loop: `config.yaml` → design + bench sheet HTML
