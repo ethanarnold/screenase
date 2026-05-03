@@ -7,7 +7,9 @@
 
 Optimizing reactions one-variable-at-a-time is slow and costly. Design of
 Experiments (DoE) is the statistical alternative. You do fewer runs and get more
-information per run. I wanted to use DoE for my own experiments, but found that no DoE software existed that was **free, fast,
+information per run. 
+
+**I wanted to use DoE for my own experiments,** but found that no DoE software existed that was **free, fast,
 and tailor-made for biochemists**. That's why I built **Screenase**.
 
 Screenase is a website that designs DoE screens for in-vitro transcription
